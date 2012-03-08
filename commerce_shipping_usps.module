@@ -9,13 +9,18 @@
  * Implements hook_menu().
  */
 function commerce_shipping_usps_menu() {
-  $items['admin/commerce/config/shipping/usps'] = array(
-    'title' => 'USPS settings',
+  $items = array();
+  
+  $items['admin/commerce/config/shipping/methods/usps/edit'] = array(
+    'title' => 'Edit',
     'description' => 'Adjust USPS shipping settings.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('commerce_shipping_usps_settings'),
     'access arguments' => array('administer shipping'),
     'file' => 'commerce_shipping_usps.inc',
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 0,
   );
 
   return $items;
@@ -104,13 +109,15 @@ function commerce_shipping_usps_rate($service, $order) {
             // Log the error.
             watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', array('@number' => $package->Error->Number->asXML(), '@description' => $package->Error->Description->asXML(), '@source' => $package->Error->Source->asXML()), WATCHDOG_ERROR);
             // Return an empty string if a pagckage contains an error.
-            return;
           }
           else {
             // Add an item to the rates array for the current service.
             // @todo: Use commerce currency.
             // @todo: Markup rates using rules?
-            $rates[$service['name']] = array(
+            $service = commerce_shipping_usps_trim_service($package->Postage->MailService);
+            $service_name = commerce_shipping_usps_return_lookup($service);
+            
+            $rates[$service_name] = array(
               'amount' => commerce_currency_decimal_to_amount(commerce_shipping_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
               'currency_code' => 'USD',
               'data' => array(),
@@ -138,23 +145,36 @@ function commerce_shipping_usps_rate($service, $order) {
 function commerce_shipping_usps_service_list() {
   return array(
     'FIRST CLASS' => 'First Class',
-    'FIRST CLASS COMMERCIAL' => 'First Class Commercial',
-    'FIRST CLASS HFP COMMERCIAL' => 'First Class HFP Commercial',
     'PRIORITY' => 'Priority',
-    'PRIORITY COMMERCIAL' => 'Priority Commercial',
-    'PRIORITY HFP COMMERCIAL' => 'Priority HFP Commercial',
     'EXPRESS' => 'Express',
-    'EXPRESS COMMERCIAL' => 'Express Commercial',
-    'EXPRESS SH' => 'Express SH',
-    'EXPRESS SH COMMERCIAL' => 'Express SH Commercial',
-    'EXPRESS HFP' => 'Express HFP',
-    'EXPRESS HFP COMMERCIAL' => 'Express HFP Commercial',
     'PARCEL' => 'Parcel',
     'MEDIA' => 'Media',
     'LIBRARY' => 'Library',
-    'ALL' => 'All',
-    'ONLINE ' => 'Online '
   );
+}
+/*
+ * USPS return value for MailService is different than what is used for the request. 
+ * This array is used map the MailService to the commerce_shipping_usps_service_list
+ */
+function commerce_shipping_usps_return_lookup($mail_service){
+  $service_map = array(
+    'First-Class Mail' => 'FIRST CLASS',
+    'Priority Mail' => 'PRIORITY',
+    'Express Mail' => 'EXPRESS',
+    'Parcel Post' => 'PARCEL',
+    'Media Mail' => 'MEDIA',
+    'Library Mail' => 'LIBRARY',
+    );
+  if(isset($service_map[$mail_service])){
+    $service_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service_map[$mail_service]));
+    return $service_name;
+  }
+}
+/*
+ * Function to clean the html garbage from rate MailService result
+ */
+function commerce_shipping_usps_trim_service($service_name){
+  return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;","",$service_name);
 }
 
 /**

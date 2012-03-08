@@ -25,11 +25,13 @@ function commerce_shipping_usps_build_rate_request($order) {
 
   // Get the orders weight and calculate lbs and ozs.
   // @todo: Create multiple packages if over 70 lbs.
-  foreach (commerce_physical_order_weight($order, 'lb') as $key => $value) {
-    $$key = $value;
+  $weight = commerce_physical_order_weight($order, 'lb');
+  //if order contains no weight skip sending request to usps
+  if(!is_array($weight) || $weight['weight'] == NULL ){
+      return false;
   }
-  $ounces = 16 * ($weight - floor($weight));
-  $pounds = floor($weight);
+  $ounces = 16 * ($weight['weight'] - floor($weight['weight']));
+  $pounds = floor($weight['weight']);
 
   // Build a USPS request.
   // @todo: Implement additional options for more accurate shipping quotes
@@ -44,13 +46,14 @@ function commerce_shipping_usps_build_rate_request($order) {
       $package = $request->addChild('Package');
       $package->addAttribute('ID', $i);
       $package->addChild('Service', $service);
+      $package->addChild('FirstClassMailType', 'PARCEL');
       $package->addChild('ZipOrigination', variable_get('commerce_shipping_usps_postal_code', ''));
       $package->addChild('ZipDestination', $shipping_address['postal_code']);
       $package->addChild('Pounds', $pounds);
       $package->addChild('Ounces', $ounces);
       $package->addChild('Container', 'VARIABLE');
       $package->addChild('Size', 'REGULAR');
-
+      $package->addChild('Machinable', 'TRUE');
       ++$i;
     }
   }
