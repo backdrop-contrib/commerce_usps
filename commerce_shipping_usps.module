@@ -114,8 +114,8 @@ function commerce_shipping_usps_rate($service, $order) {
             // Add an item to the rates array for the current service.
             // @todo: Use commerce currency.
             // @todo: Markup rates using rules?
-            $service = commerce_shipping_usps_trim_service($package->Postage->MailService);
-            $service_name = commerce_shipping_usps_return_lookup($service);
+            $mail_service = commerce_shipping_usps_trim_service($package->Postage->MailService);
+            $service_name = commerce_shipping_usps_return_lookup($mail_service);
             
             $rates[$service_name] = array(
               'amount' => commerce_currency_decimal_to_amount(commerce_shipping_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
