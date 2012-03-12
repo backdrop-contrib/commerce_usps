@@ -3,6 +3,7 @@ description = Provides USPS Shipping Options
 package = Commerce (shipping)
 dependencies[] = commerce
 dependencies[] = commerce_shipping
+dependencies[] = commerce_physical
 core = 7.x
 
 ; Base module files
