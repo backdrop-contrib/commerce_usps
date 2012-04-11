@@ -51,4 +51,3 @@ If you need custom functionality, you have several options:
 2. Hire one of the maintainers to create a custom module that interfaces with Commerce UPS to add your custom functionality.
 
 3. Break open a text editor and start coding your own custom module.
-
