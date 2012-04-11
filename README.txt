@@ -1,5 +1,3 @@
-/* $Id$ */
-
 - - - - - About this module
 
 Commerce USPS module provides shipping calculations from the USPS WebTools API

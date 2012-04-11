@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Admin functions for Commerce Shipping USPS.

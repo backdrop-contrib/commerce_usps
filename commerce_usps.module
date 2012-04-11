@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Defines the USPS shipping method and services for Drupal Commerce.
