@@ -9,7 +9,6 @@
  */
 function commerce_usps_menu() {
   $items = array();
-  
   $items['admin/commerce/config/shipping/methods/usps/edit'] = array(
     'title' => 'Edit',
     'description' => 'Adjust USPS shipping settings.',
@@ -107,9 +106,9 @@ function commerce_usps_rate($service, $order) {
           if ($package->Error) {
             // Log the error.
             $watchdog_meta = array(
-              '@number' => $package->Error->Number->asXML(), 
-              '@description' => $package->Error->Description->asXML(), 
-              '@source' => $package->Error->Source->asXML()
+              '@number' => $package->Error->Number->asXML(),
+              '@description' => $package->Error->Description->asXML(),
+              '@source' => $package->Error->Source->asXML(),
             );
             watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
             // Return an empty string if a pagckage contains an error.
@@ -120,7 +119,6 @@ function commerce_usps_rate($service, $order) {
             // @todo: Markup rates using rules?
             $mail_service = commerce_usps_trim_service($package->Postage->MailService);
             $service_name = commerce_usps_return_lookup($mail_service);
-            
             $rates[$service_name] = array(
               'amount' => commerce_currency_decimal_to_amount(commerce_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
               'currency_code' => 'USD',
@@ -135,9 +133,9 @@ function commerce_usps_rate($service, $order) {
       else {
         // Log the error.
         $watchdog_meta = array(
-          '@number' => $response->Number->asXML(), 
-          '@description' => $response->Description->asXML(), 
-          '@source' => $response->Source->asXML()
+          '@number' => $response->Number->asXML(),
+          '@description' => $response->Description->asXML(),
+          '@source' => $response->Source->asXML(),
         );
         watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
       }
@@ -163,10 +161,10 @@ function commerce_usps_service_list() {
 }
 
 /**
- * USPS return value for MailService is different than what is used for the request. 
+ * USPS return value for MailService is differs from what is used for request.
  * This array is used map the MailService to the commerce_usps_service_list
  */
-function commerce_usps_return_lookup($mail_service){
+function commerce_usps_return_lookup($mail_service) {
   $service_map = array(
     'First-Class Mail' => 'FIRST CLASS',
     'Priority Mail' => 'PRIORITY',
@@ -174,8 +172,8 @@ function commerce_usps_return_lookup($mail_service){
     'Parcel Post' => 'PARCEL',
     'Media Mail' => 'MEDIA',
     'Library Mail' => 'LIBRARY',
-    );
-  if(isset($service_map[$mail_service])){
+  );
+  if(isset($service_map[$mail_service])) {
     $service_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service_map[$mail_service]));
     return $service_name;
   }
@@ -184,7 +182,7 @@ function commerce_usps_return_lookup($mail_service){
 /**
  * Function to clean the html garbage from rate MailService result
  */
-function commerce_usps_trim_service($service_name){
+function commerce_usps_trim_service($service_name) {
   return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;", "", $service_name);
 }
 
