@@ -69,7 +69,7 @@ function commerce_usps_build_rate_request($order) {
  * @param string $message
  *   Optional log message.
  *
- * @return
+ * @return string
  *   XML string response from USPS
  */
 function commerce_usps_api_request($request, $message = '') {
