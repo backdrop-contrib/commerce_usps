@@ -8,16 +8,16 @@
 /**
  * Implements hook_menu().
  */
-function commerce_shipping_usps_menu() {
+function commerce_usps_menu() {
   $items = array();
   
   $items['admin/commerce/config/shipping/methods/usps/edit'] = array(
     'title' => 'Edit',
     'description' => 'Adjust USPS shipping settings.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('commerce_shipping_usps_settings'),
+    'page arguments' => array('commerce_usps_settings'),
     'access arguments' => array('administer shipping'),
-    'file' => 'commerce_shipping_usps.inc',
+    'file' => 'commerce_usps.inc',
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_INLINE,
     'weight' => 0,
@@ -29,7 +29,7 @@ function commerce_shipping_usps_menu() {
 /**
  * Implements hook_commerce_shipping_method_info().
  */
-function commerce_shipping_usps_commerce_shipping_method_info() {
+function commerce_usps_commerce_shipping_method_info() {
   return array(
     'usps' => array(
       'title' => t('USPS'),
@@ -41,10 +41,10 @@ function commerce_shipping_usps_commerce_shipping_method_info() {
 /**
  * Implements hook_commerce_shipping_service_info().
  */
-function commerce_shipping_usps_commerce_shipping_service_info() {
+function commerce_usps_commerce_shipping_service_info() {
   $services = array();
-  $available = commerce_shipping_usps_service_list();
-  $enabled = variable_get('commerce_shipping_usps_services', array());
+  $available = commerce_usps_service_list();
+  $enabled = variable_get('commerce_usps_services', array());
 
   // Add enabled USPS services.
   foreach ($enabled as $service) {
@@ -58,7 +58,7 @@ function commerce_shipping_usps_commerce_shipping_service_info() {
         'shipping_method' => 'usps',
         'price_component' => 'shipping',
         'callbacks' => array(
-          'rate' => 'commerce_shipping_usps_rate',
+          'rate' => 'commerce_usps_rate',
         ),
       );
     }
@@ -70,9 +70,9 @@ function commerce_shipping_usps_commerce_shipping_service_info() {
 /**
  * Implements hook_form_alter().
  */
-function commerce_shipping_usps_form_alter(&$form, &$form_state, $form_id) {
+function commerce_usps_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'commerce_checkout_form_shipping') {
-    $logo = drupal_get_path('module', 'commerce_shipping_usps') . '/images/usps-logo.png';
+    $logo = drupal_get_path('module', 'commerce_usps') . '/images/usps-logo.png';
     // @todo: Allow user to toggle the display of the logo.
     if (variable_get('commerce_usps_logo', FALSE)) {
       $form['commerce_shipping']['#title'] = $form['commerce_shipping']['#title'] . theme('image', array('path' => $logo));
@@ -84,22 +84,22 @@ function commerce_shipping_usps_form_alter(&$form, &$form_state, $form_id) {
  * Shipping service callback: returns a base price array for a shipping service
  * calculated for the given order.
  */
-function commerce_shipping_usps_rate($service, $order) {
+function commerce_usps_rate($service, $order) {
   // Attempt to recover cached shipping rates.
   // @todo: Allow the setting of commerce_usps_rates_timeout.
   $rates = commerce_shipping_rates_cache_get('usps', $order, variable_get('commerce_usps_rates_timeout', 0));
   // If no cached rates were found or they have expired.
   if (!$rates) {
     // Load files required for building requests.
-    module_load_include('inc', 'commerce_shipping_usps', 'commerce_shipping_usps.xml');
+    module_load_include('inc', 'commerce_usps', 'commerce_usps.xml');
     $rates = array();
 
     // Build the request.
-    $request = commerce_shipping_usps_build_rate_request($order);
+    $request = commerce_usps_build_rate_request($order);
 
     if ($request) {
       // Submit the request.
-      $response = commerce_shipping_usps_api_request($request, t('Requesting shipping rates for Order @order_number', array('@order_number' => $order->order_number)));
+      $response = commerce_usps_api_request($request, t('Requesting shipping rates for Order @order_number', array('@order_number' => $order->order_number)));
 
       if (!empty($response->Package)) {
          // Parse the response to cache all requested rates for the current order.
@@ -114,11 +114,11 @@ function commerce_shipping_usps_rate($service, $order) {
             // Add an item to the rates array for the current service.
             // @todo: Use commerce currency.
             // @todo: Markup rates using rules?
-            $mail_service = commerce_shipping_usps_trim_service($package->Postage->MailService);
-            $service_name = commerce_shipping_usps_return_lookup($mail_service);
+            $mail_service = commerce_usps_trim_service($package->Postage->MailService);
+            $service_name = commerce_usps_return_lookup($mail_service);
             
             $rates[$service_name] = array(
-              'amount' => commerce_currency_decimal_to_amount(commerce_shipping_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
+              'amount' => commerce_currency_decimal_to_amount(commerce_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
               'currency_code' => 'USD',
               'data' => array(),
             );
@@ -142,7 +142,7 @@ function commerce_shipping_usps_rate($service, $order) {
 /**
  * Returns USPS codes for their services.
  */
-function commerce_shipping_usps_service_list() {
+function commerce_usps_service_list() {
   return array(
     'FIRST CLASS' => 'First Class',
     'PRIORITY' => 'Priority',
@@ -154,9 +154,9 @@ function commerce_shipping_usps_service_list() {
 }
 /*
  * USPS return value for MailService is different than what is used for the request. 
- * This array is used map the MailService to the commerce_shipping_usps_service_list
+ * This array is used map the MailService to the commerce_usps_service_list
  */
-function commerce_shipping_usps_return_lookup($mail_service){
+function commerce_usps_return_lookup($mail_service){
   $service_map = array(
     'First-Class Mail' => 'FIRST CLASS',
     'Priority Mail' => 'PRIORITY',
@@ -173,7 +173,7 @@ function commerce_shipping_usps_return_lookup($mail_service){
 /*
  * Function to clean the html garbage from rate MailService result
  */
-function commerce_shipping_usps_trim_service($service_name){
+function commerce_usps_trim_service($service_name){
   return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;","",$service_name);
 }
 
@@ -183,10 +183,10 @@ function commerce_shipping_usps_trim_service($service_name){
  * @rate:
  *   A base USPS service rate.
  */
-function commerce_shipping_usps_rate_markup($rate) {
-  $markup = variable_get('commerce_shipping_usps_markup');
+function commerce_usps_rate_markup($rate) {
+  $markup = variable_get('commerce_usps_markup');
 
-  switch (variable_get('commerce_shipping_usps_markup_type', 'percentage')) {
+  switch (variable_get('commerce_usps_markup_type', 'percentage')) {
     case 'amount':
       return $rate + $markup;
     default:

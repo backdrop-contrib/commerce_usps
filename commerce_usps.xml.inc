@@ -8,7 +8,7 @@
 /**
  * Builds the USPS rate request.
  */
-function commerce_shipping_usps_build_rate_request($order) {
+function commerce_usps_build_rate_request($order) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
 
   // Determine the shipping profile reference field name for the order.
@@ -37,17 +37,17 @@ function commerce_shipping_usps_build_rate_request($order) {
   // @todo: Implement additional options for more accurate shipping quotes
   // (see https://www.usps.com/webtools/htm/Rate-Calculators-v1-3.htm).
   $request = new SimpleXMLElement('<RateV4Request/>');
-  $request->addAttribute('USERID', variable_get('commerce_shipping_usps_user', ''));
+  $request->addAttribute('USERID', variable_get('commerce_usps_user', ''));
 
   // Add a package to the request for each enabled service.
   $i = 1;
-  foreach (variable_get('commerce_shipping_usps_services', array()) as $service) {
+  foreach (variable_get('commerce_usps_services', array()) as $service) {
     if ($service) {
       $package = $request->addChild('Package');
       $package->addAttribute('ID', $i);
       $package->addChild('Service', $service);
       $package->addChild('FirstClassMailType', 'PARCEL');
-      $package->addChild('ZipOrigination', variable_get('commerce_shipping_usps_postal_code', ''));
+      $package->addChild('ZipOrigination', variable_get('commerce_usps_postal_code', ''));
       $package->addChild('ZipDestination', $shipping_address['postal_code']);
       $package->addChild('Pounds', $pounds);
       $package->addChild('Ounces', $ounces);
@@ -69,10 +69,10 @@ function commerce_shipping_usps_build_rate_request($order) {
  * @param $message
  *   Optional log message.
  */
-function commerce_shipping_usps_api_request($request, $message = '') {
+function commerce_usps_api_request($request, $message = '') {
   // Log the API request if specified.
   // @todo: Add ability for admin to toggle logging of request.
-  //if (in_array('request', variable_get('commerce_shipping_usps_log', array()))) {
+  //if (in_array('request', variable_get('commerce_usps_log', array()))) {
     if (empty($message)) {
       $message = t('Submitting API request to USPS.');
     }
@@ -80,13 +80,13 @@ function commerce_shipping_usps_api_request($request, $message = '') {
   //}
 
   // Send the request.
-  $response = drupal_http_request(variable_get('commerce_shipping_usps_connection_address', 'http://Production.ShippingAPIs.com/ShippingAPI.dll'), array('method' => 'POST', 'data' => $request));
+  $response = drupal_http_request(variable_get('commerce_usps_connection_address', 'http://Production.ShippingAPIs.com/ShippingAPI.dll'), array('method' => 'POST', 'data' => $request));
 
   // If we received a response.
   if (!empty($response->data)) {
     // Log the API request if specified.
     // @todo: Add ability for admin to toggle logging of response.
-    //if (in_array('response', variable_get('commerce_shipping_usps_log', array()))) {
+    //if (in_array('response', variable_get('commerce_usps_log', array()))) {
       watchdog('usps', 'Response code:@code<br />Response:<pre>@response</pre>', array('@code' => $response->code, '@response' => $response->data));
     //}
 

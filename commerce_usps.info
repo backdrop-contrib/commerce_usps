@@ -1,10 +1,7 @@
-name = USPS Shipping
-description = Provides USPS Shipping Options
+name = USPS
+description = Integrates USPS with Commerce Shipping to rate selected USPS services during checkout.
 package = Commerce (shipping)
 dependencies[] = commerce
 dependencies[] = commerce_shipping
 dependencies[] = commerce_physical
 core = 7.x
-
-; Base module files
-files[] = commerce_shipping_usps.module
