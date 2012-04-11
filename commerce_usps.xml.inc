@@ -26,7 +26,7 @@ function commerce_usps_build_rate_request($order) {
   // Get the orders weight and calculate lbs and ozs.
   // @todo: Create multiple packages if over 70 lbs.
   $weight = commerce_physical_order_weight($order, 'lb');
-  //if order contains no weight skip sending request to usps
+  // if order contains no weight skip sending request to usps
   if(!is_array($weight) || $weight['weight'] == NULL ){
       return false;
   }
@@ -64,21 +64,20 @@ function commerce_usps_build_rate_request($order) {
 /**
  * Submits an API request to USPS.
  *
- * @param $xml
+ * @param $xml string
  *   An XML request string.
- * @param $message
+ * @param $message string
  *   Optional log message.
  */
 function commerce_usps_api_request($request, $message = '') {
   // Log the API request if specified.
   // @todo: Add ability for admin to toggle logging of request.
-  //if (in_array('request', variable_get('commerce_usps_log', array()))) {
-    if (empty($message)) {
-      $message = t('Submitting API request to USPS.');
-    }
-    watchdog('usps', '@message:<pre>@request</pre>', array('@message' => $message, '@request' => $request));
-  //}
-
+  // if (in_array('request', variable_get('commerce_usps_log', array()))) {
+  if (empty($message)) {
+    $message = t('Submitting API request to USPS.');
+  }
+  watchdog('usps', '@message:<pre>@request</pre>', array('@message' => $message, '@request' => $request));
+  // }
   // Send the request.
   $response = drupal_http_request(variable_get('commerce_usps_connection_address', 'http://Production.ShippingAPIs.com/ShippingAPI.dll'), array('method' => 'POST', 'data' => $request));
 
@@ -86,10 +85,9 @@ function commerce_usps_api_request($request, $message = '') {
   if (!empty($response->data)) {
     // Log the API request if specified.
     // @todo: Add ability for admin to toggle logging of response.
-    //if (in_array('response', variable_get('commerce_usps_log', array()))) {
+    // if (in_array('response', variable_get('commerce_usps_log', array()))) {
       watchdog('usps', 'Response code:@code<br />Response:<pre>@response</pre>', array('@code' => $response->code, '@response' => $response->data));
-    //}
-
+    // }
     // Return the response as an XML response object.
     return new SimpleXMLElement($response->data);
   }

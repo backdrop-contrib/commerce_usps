@@ -173,7 +173,7 @@ function commerce_usps_return_lookup($mail_service) {
     'Media Mail' => 'MEDIA',
     'Library Mail' => 'LIBRARY',
   );
-  if(isset($service_map[$mail_service])) {
+  if (isset($service_map[$mail_service])) {
     $service_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service_map[$mail_service]));
     return $service_name;
   }
