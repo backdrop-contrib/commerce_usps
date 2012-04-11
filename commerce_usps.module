@@ -49,10 +49,10 @@ function commerce_usps_commerce_shipping_service_info() {
   foreach ($enabled as $service) {
     if ($service) {
       $machine_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service));
-
+      $description = 'USPS ' . $available[$service] . ' service.';
       $services[$machine_name] = array(
         'title' => t($service),
-        'description' => t('USPS ' . $available[$service] . ' service.'),
+        'description' => t($description),
         'display_title' => t($available[$service]),
         'shipping_method' => 'usps',
         'price_component' => 'shipping',
@@ -101,12 +101,17 @@ function commerce_usps_rate($service, $order) {
       $response = commerce_usps_api_request($request, t('Requesting shipping rates for Order @order_number', array('@order_number' => $order->order_number)));
 
       if (!empty($response->Package)) {
-         // Parse the response to cache all requested rates for the current order.
+         // Parse the response to cache all requested rates for the order.
         foreach ($response->Package as $package) {
           // If the package contains an error.
           if ($package->Error) {
             // Log the error.
-            watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', array('@number' => $package->Error->Number->asXML(), '@description' => $package->Error->Description->asXML(), '@source' => $package->Error->Source->asXML()), WATCHDOG_ERROR);
+            $watchdog_meta = array(
+              '@number' => $package->Error->Number->asXML(), 
+              '@description' => $package->Error->Description->asXML(), 
+              '@source' => $package->Error->Source->asXML()
+            );
+            watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
             // Return an empty string if a pagckage contains an error.
           }
           else {
@@ -129,7 +134,12 @@ function commerce_usps_rate($service, $order) {
       }
       else {
         // Log the error.
-        watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', array('@number' => $response->Number->asXML(), '@description' => $response->Description->asXML(), '@source' => $response->Source->asXML()), WATCHDOG_ERROR);
+        $watchdog_meta = array(
+          '@number' => $response->Number->asXML(), 
+          '@description' => $response->Description->asXML(), 
+          '@source' => $response->Source->asXML()
+        );
+        watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
       }
     }
   }
@@ -151,7 +161,8 @@ function commerce_usps_service_list() {
     'LIBRARY' => 'Library',
   );
 }
-/*
+
+/**
  * USPS return value for MailService is different than what is used for the request. 
  * This array is used map the MailService to the commerce_usps_service_list
  */
@@ -169,11 +180,12 @@ function commerce_usps_return_lookup($mail_service){
     return $service_name;
   }
 }
-/*
+
+/**
  * Function to clean the html garbage from rate MailService result
  */
 function commerce_usps_trim_service($service_name){
-  return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;","",$service_name);
+  return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;", "", $service_name);
 }
 
 /**
