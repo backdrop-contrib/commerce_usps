@@ -26,9 +26,9 @@ function commerce_usps_build_rate_request($order) {
   // Get the orders weight and calculate lbs and ozs.
   // @todo: Create multiple packages if over 70 lbs.
   $weight = commerce_physical_order_weight($order, 'lb');
-  // if order contains no weight skip sending request to usps
-  if(!is_array($weight) || $weight['weight'] == NULL ){
-      return false;
+  // If order contains no weight skip sending request to usps.
+  if (!is_array($weight) || $weight['weight'] == NULL) {
+      return FALSE;
   }
   $ounces = 16 * ($weight['weight'] - floor($weight['weight']));
   $pounds = floor($weight['weight']);
@@ -64,10 +64,13 @@ function commerce_usps_build_rate_request($order) {
 /**
  * Submits an API request to USPS.
  *
- * @param $xml string
- *   An XML request string.
- * @param $message string
+ * @param string $request
+ *   A request string.
+ * @param string $message
  *   Optional log message.
+ * 
+ * @return 
+ *   XML string response from USPS
  */
 function commerce_usps_api_request($request, $message = '') {
   // Log the API request if specified.
