@@ -66,19 +66,6 @@ function commerce_usps_commerce_shipping_service_info() {
 }
 
 /**
- * Implements hook_form_alter().
- */
-function commerce_usps_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'commerce_checkout_form_shipping') {
-    $logo = drupal_get_path('module', 'commerce_usps') . '/images/usps-logo.png';
-    // @todo: Allow user to toggle the display of the logo.
-    if (variable_get('commerce_usps_logo', FALSE)) {
-      $form['commerce_shipping']['#title'] = $form['commerce_shipping']['#title'] . theme('image', array('path' => $logo));
-    }
-  }
-}
-
-/**
  * Shipping service callback: returns a base price array for a shipping service
  * calculated for the given order.
  */
