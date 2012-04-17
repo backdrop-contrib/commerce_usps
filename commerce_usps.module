@@ -200,7 +200,7 @@ function commerce_usps_trim_service($service_name) {
 /**
  * Returns the marked-up rate.
  *
- * @param float $rate:
+ * @param float $rate
  *   A base USPS service rate.
  *
  * @return float
