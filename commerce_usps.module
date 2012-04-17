@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Defines the USPS shipping method and services for Drupal Commerce.
@@ -68,6 +69,14 @@ function commerce_usps_commerce_shipping_service_info() {
 /**
  * Shipping service callback: returns a base price array for a shipping service
  * calculated for the given order.
+ *
+ * @param array $service
+ *   An array describing the shipping service.
+ * @param object $order
+ *   The order object.
+ *
+ * @return array
+ *   The service rates returned from USPS
  */
 function commerce_usps_rate($service, $order) {
   // Attempt to recover cached shipping rates.
@@ -135,6 +144,9 @@ function commerce_usps_rate($service, $order) {
 
 /**
  * Returns USPS codes for their services.
+ *
+ * @return array
+ *   USPS codes for making the XML request
  */
 function commerce_usps_service_list() {
   return array(
@@ -150,6 +162,12 @@ function commerce_usps_service_list() {
 /**
  * USPS return value for MailService is differs from what is used for request.
  * This array is used map the MailService to the commerce_usps_service_list
+ *
+ * @param sting $mail_service
+ *   A string that matches what is returned from USPS
+ *
+ * @return string
+ *   A string that matches the initial codes used for XML request
  */
 function commerce_usps_return_lookup($mail_service) {
   $service_map = array(
@@ -167,7 +185,13 @@ function commerce_usps_return_lookup($mail_service) {
 }
 
 /**
- * Function to clean the html garbage from rate MailService result
+ * Function to clean the html garbage from rate MailService result *
+ * 
+ * @param sting $service_name
+ *   The string returned by USPS that contains extra characters
+ *
+ * @return string
+ *   A cleaned and fomatted string
  */
 function commerce_usps_trim_service($service_name) {
   return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;", "", $service_name);
@@ -176,8 +200,11 @@ function commerce_usps_trim_service($service_name) {
 /**
  * Returns the marked-up rate.
  *
- * @rate:
+ * @param float rate:
  *   A base USPS service rate.
+ * 
+ * @return float
+ *   The rate after markup has been applied.
  */
 function commerce_usps_rate_markup($rate) {
   $markup = variable_get('commerce_usps_markup');

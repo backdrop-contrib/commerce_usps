@@ -1,11 +1,15 @@
 <?php
+
 /**
  * @file
- * Admin functions for Commerce Shipping USPS.
+ * Admin functions for Commerce USPS.
  */
 
 /**
  * Form builder function for module settings.
+ * 
+ * @return string
+ *   Drupal form for USPS settings
  */
 function commerce_usps_settings() {
   $form['origin'] = array(

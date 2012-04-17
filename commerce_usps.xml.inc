@@ -7,6 +7,12 @@
 
 /**
  * Builds the USPS rate request.
+ * 
+ * @param object $order
+ *   The commerce order object
+ *
+ * @return string
+ *   A USPS Web Tools XML request string
  */
 function commerce_usps_build_rate_request($order) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
