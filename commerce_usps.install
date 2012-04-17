@@ -32,3 +32,4 @@ function commerce_usps_uninstall() {
     variable_del($data);
   }
 }
+
