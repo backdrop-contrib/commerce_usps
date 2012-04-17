@@ -186,7 +186,7 @@ function commerce_usps_return_lookup($mail_service) {
 
 /**
  * Function to clean the html garbage from rate MailService result *
- * 
+ *
  * @param sting $service_name
  *   The string returned by USPS that contains extra characters
  *
@@ -200,9 +200,9 @@ function commerce_usps_trim_service($service_name) {
 /**
  * Returns the marked-up rate.
  *
- * @param float rate:
+ * @param float $rate:
  *   A base USPS service rate.
- * 
+ *
  * @return float
  *   The rate after markup has been applied.
  */

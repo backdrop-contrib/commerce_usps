@@ -7,7 +7,7 @@
 
 /**
  * Builds the USPS rate request.
- * 
+ *
  * @param object $order
  *   The commerce order object
  *

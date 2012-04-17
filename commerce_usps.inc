@@ -7,7 +7,7 @@
 
 /**
  * Form builder function for module settings.
- * 
+ *
  * @return string
  *   Drupal form for USPS settings
  */
