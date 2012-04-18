@@ -10,22 +10,11 @@
  */
 function commerce_usps_uninstall() {
   $fields = array(
-    'commerce_usps_name',
-    'commerce_usps_owner',
-    'commerce_usps_email',
-    'commerce_usps_phone',
-    'commerce_usps_fax',
-    'commerce_usps_street1',
-    'commerce_usps_street2',
-    'commerce_usps_city',
-    'commerce_usps_zone',
     'commerce_usps_postal_code',
-    'commerce_usps_country',
     'commerce_usps_services',
     'commerce_usps_markup_type',
     'commerce_usps_markup',
     'commerce_usps_connection_address',
-    'commerce_usps_user',
   );
 
   foreach ($fields as $data) {
