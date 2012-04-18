@@ -52,13 +52,20 @@ function commerce_usps_settings() {
   $form['api'] = array(
     '#type' => 'fieldset',
     '#title' => t('USPS Connection Settings'),
-    '#collapsed' => TRUE,
+    '#collapsed' => variable_get('commerce_usps_user', FALSE),
     '#collapsible' => TRUE,
   );
   $form['api']['commerce_usps_connection_address'] = array(
     '#type' => 'textfield',
     '#title' => t('Connection Address'),
     '#default_value' => variable_get('commerce_usps_connection_address', 'http://production.shippingapis.com/ShippingAPI.dll'),
+    '#required' => TRUE,
+  );
+  $form['api']['commerce_usps_user'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#default_value' => variable_get('commerce_usps_user', ''),
+    '#description' => t('The user name for your USPS account.'),
     '#required' => TRUE,
   );
   return system_settings_form($form);

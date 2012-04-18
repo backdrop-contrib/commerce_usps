@@ -15,6 +15,7 @@ function commerce_usps_uninstall() {
     'commerce_usps_markup_type',
     'commerce_usps_markup',
     'commerce_usps_connection_address',
+    'commerce_usps_user',
   );
 
   foreach ($fields as $data) {
