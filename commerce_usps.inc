@@ -13,7 +13,7 @@
  */
 function commerce_usps_settings() {
   $form['origin'] = array(
-    '#title' => 'Ship from location',
+    '#title' => t('Ship from location'),
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
   );
@@ -24,7 +24,7 @@ function commerce_usps_settings() {
   );
   $form['settings'] = array(
     '#type' => 'fieldset',
-    '#title' => 'Shipment Settings',
+    '#title' => t('Shipment Settings'),
     '#collapsible' => TRUE,
   );
   $form['settings']['commerce_usps_services'] = array(
@@ -59,6 +59,7 @@ function commerce_usps_settings() {
     '#type' => 'textfield',
     '#title' => t('Connection Address'),
     '#default_value' => variable_get('commerce_usps_connection_address', 'http://production.shippingapis.com/ShippingAPI.dll'),
+    '#required' => TRUE,
   );
   return system_settings_form($form);
 }
