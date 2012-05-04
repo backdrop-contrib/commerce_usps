@@ -194,7 +194,7 @@ function commerce_usps_return_lookup($mail_service) {
  *   A cleaned and fomatted string
  */
 function commerce_usps_trim_service($service_name) {
-  return str_replace("&lt;sup&gt;&amp;reg;&lt;/sup&gt;", "", $service_name);
+  return str_replace('&lt;sup&gt;&amp;reg;&lt;/sup&gt;', '', $service_name);
 }
 
 /**
