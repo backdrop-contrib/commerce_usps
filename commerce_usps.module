@@ -49,10 +49,9 @@ function commerce_usps_commerce_shipping_service_info() {
   foreach ($enabled as $service) {
     if ($service) {
       $machine_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service));
-      $description = 'USPS ' . $available[$service] . ' service.';
       $services[$machine_name] = array(
         'title' => t($service),
-        'description' => t($description),
+        'description' => t('USPS @service service', array('@service' => $available[$service])),
         'display_title' => t($available[$service]),
         'shipping_method' => 'usps',
         'price_component' => 'shipping',
@@ -85,7 +84,7 @@ function commerce_usps_rate($service, $order) {
   // If no cached rates were found or they have expired.
   if (!$rates) {
     // Load files required for building requests.
-    module_load_include('inc', 'commerce_usps', 'commerce_usps.xml');
+    require_once dirname(__FILE__) . '/commerce_usps.xml.inc';
     $rates = array();
 
     // Build the request.
@@ -96,7 +95,7 @@ function commerce_usps_rate($service, $order) {
       $response = commerce_usps_api_request($request, t('Requesting shipping rates for Order @order_number', array('@order_number' => $order->order_number)));
 
       if (!empty($response->Package)) {
-         // Parse the response to cache all requested rates for the order.
+        // Parse the response to cache all requested rates for the order.
         foreach ($response->Package as $package) {
           // If the package contains an error.
           if ($package->Error) {
@@ -150,12 +149,12 @@ function commerce_usps_rate($service, $order) {
  */
 function commerce_usps_service_list() {
   return array(
-    'FIRST CLASS' => 'First Class',
-    'PRIORITY' => 'Priority',
-    'EXPRESS' => 'Express',
-    'PARCEL' => 'Parcel',
-    'MEDIA' => 'Media',
-    'LIBRARY' => 'Library',
+    'FIRST CLASS' => t('First Class'),
+    'PRIORITY' => t('Priority'),
+    'EXPRESS' => t('Express'),
+    'PARCEL' => t('Parcel'),
+    'MEDIA' => t('Media'),
+    'LIBRARY' => t('Library'),
   );
 }
 
