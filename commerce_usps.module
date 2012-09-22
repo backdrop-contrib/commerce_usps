@@ -14,7 +14,7 @@ function commerce_usps_menu() {
     'title' => 'Edit',
     'description' => 'Adjust USPS shipping settings.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('commerce_usps_settings'),
+    'page arguments' => array('commerce_usps_settings_form'),
     'access arguments' => array('administer shipping'),
     'file' => 'commerce_usps.inc',
     'type' => MENU_LOCAL_TASK,
@@ -24,6 +24,7 @@ function commerce_usps_menu() {
 
   return $items;
 }
+
 
 /**
  * Implements hook_commerce_shipping_method_info().

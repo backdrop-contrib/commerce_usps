@@ -11,7 +11,7 @@
  * @return string
  *   Drupal form for USPS settings
  */
-function commerce_usps_settings() {
+function commerce_usps_settings_form() {
   $form['origin'] = array(
     '#title' => t('Ship from location'),
     '#type' => 'fieldset',
@@ -68,5 +68,59 @@ function commerce_usps_settings() {
     '#description' => t('The user name for your USPS account.'),
     '#required' => TRUE,
   );
-  return system_settings_form($form);
+  $form['actions'] = array(
+    '#type' => 'container',
+    '#attributes' => array('class' => array('form-actions')),
+    '#weight' => 40,
+  );
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save USPS settings'),
+  );
+  return $form;
+}
+
+/**
+ * Validate handler: valiates the usps settings form.
+ */
+function commerce_usps_settings_form_validate($form, $form_state) {
+  // Check for a valid postal code
+  $postal_code = $form_state['values']['commerce_usps_postal_code'];
+  if (!is_numeric($postal_code) || strlen($postal_code) != 5) {
+    form_set_error('commerce_usps_postal_code', t('You must enter a 5 digit zip code'));
+  }
+  // Disallow USPS testing urls.
+  $connection_address = $form_state['values']['commerce_usps_connection_address'];
+  if (preg_match('/testing/', drupal_strtolower($connection_address))) {
+    form_set_error('commerce_usps_connection_address', t('Only production urls will work with this module. Please have USPS exdend production access to your Webtools account by calling or emailing them.'));
+  }
+}
+
+/**
+ * Submit handler: saves the usps settings.
+ */
+function commerce_usps_settings_form_submit($form, &$form_state) {
+  $fields = array(
+    'commerce_usps_postal_code',
+    'commerce_usps_services',
+    'commerce_usps_markup_type',
+    'commerce_usps_markup',
+    'commerce_usps_connection_address',
+    'commerce_usps_user',
+  );
+  $services = variable_get('commerce_usps_services', NULL);
+  foreach ($fields as $key) {
+    if (array_key_exists($key, $form_state['values'])) {
+      $value = $form_state['values'][$key];
+      variable_set($key, $value);
+    }
+  }
+  // If the selected services have changed then rebuild caches.
+  if ($services !== $form_state['values']['commerce_usps_services']) {
+    commerce_shipping_services_reset();
+    entity_defaults_rebuild();
+    rules_clear_cache(TRUE);
+    menu_rebuild();
+  }
+  drupal_set_message(t('The USPS configuration options have been saved.'));
 }
