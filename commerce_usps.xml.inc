@@ -53,8 +53,8 @@ function commerce_usps_build_rate_request($order) {
       $package->addAttribute('ID', $i);
       $package->addChild('Service', $service);
       $package->addChild('FirstClassMailType', 'PARCEL');
-      $package->addChild('ZipOrigination', variable_get('commerce_usps_postal_code', ''));
-      $package->addChild('ZipDestination', $shipping_address['postal_code']);
+      $package->addChild('ZipOrigination', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
+      $package->addChild('ZipDestination', substr($shipping_address['postal_code'], 0, 5));
       $package->addChild('Pounds', $pounds);
       $package->addChild('Ounces', $ounces);
       $package->addChild('Container', 'VARIABLE');
