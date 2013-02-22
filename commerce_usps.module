@@ -102,12 +102,11 @@ function commerce_usps_rate($service, $order) {
           if ($package->Error) {
             // Log the error.
             $watchdog_meta = array(
-              '@number' => $package->Error->Number->asXML(),
-              '@description' => $package->Error->Description->asXML(),
-              '@source' => $package->Error->Source->asXML(),
+              '@number' => !empty($package->Error->Number) ? $package->Error->Number->asXML() : t('No number'),
+              '@description' => !empty($package->Error->Description) ? $package->Error->Description->asXML() : t('No description'),
+              '@source' => !empty($package->Error->Source) ? $package->Error->Source->asXML() : t('No source'),
             );
-            watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
-            // Return an empty string if a pagckage contains an error.
+            watchdog('usps', 'Number: @number<br />Description: @description<br />Source: @source', $watchdog_meta, WATCHDOG_ERROR);
           }
           else {
             // Add an item to the rates array for the current service.
@@ -126,14 +125,18 @@ function commerce_usps_rate($service, $order) {
         // Cache the calculated rates for subsequent requests.
         commerce_shipping_rates_cache_set('usps', $order, $rates);
       }
-      else {
+      elseif (empty($response)) {
         // Log the error.
         $watchdog_meta = array(
-          '@number' => $response->Number->asXML(),
-          '@description' => $response->Description->asXML(),
-          '@source' => $response->Source->asXML(),
+          '@number' => !empty($response->Number) ? $response->Number->asXML() : t('No number'),
+          '@description' => !empty($response->Description) ? $response->Description->asXML() : t('No description'),
+          '@source' => !empty($response->Source) ? $response->Source->asXML() : t('No source'),
         );
-        watchdog('usps', 'Number:@number<br />Description:@description<br />Source:@source', $watchdog_meta, WATCHDOG_ERROR);
+        watchdog('usps', 'Number: @number<br />Description: @description<br />Source: @source', $watchdog_meta, WATCHDOG_ERROR);
+      }
+      else {
+        $watchdog_meta =  array('!configuration' => l('configuration', 'admin/commerce/config/shipping/methods/usps/edit'));
+        watchdog('usps', 'No response was received from USPS. Make sure you have the correct URL set in your !configuration.', $watchdog_meta, WATCHDOG_ERROR);
       }
     }
   }
