@@ -16,7 +16,7 @@ function commerce_usps_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('commerce_usps_settings_form'),
     'access arguments' => array('administer shipping'),
-    'file' => 'commerce_usps.inc',
+    'file' => 'includes/commerce_usps.admin.inc',
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_INLINE,
     'weight' => 0,
@@ -24,7 +24,6 @@ function commerce_usps_menu() {
 
   return $items;
 }
-
 
 /**
  * Implements hook_commerce_shipping_method_info().
@@ -42,18 +41,17 @@ function commerce_usps_commerce_shipping_method_info() {
  * Implements hook_commerce_shipping_service_info().
  */
 function commerce_usps_commerce_shipping_service_info() {
-  $services = array();
-  $available = commerce_usps_service_list();
-  $enabled = variable_get('commerce_usps_services', array());
+  $registered_services = array();
+  $available = array_merge(commerce_usps_service_list('domestic'), commerce_usps_service_list('international')) ;
+  $enabled = array_merge(variable_get('commerce_usps_services', array()), variable_get('commerce_usps_services_int', array()));
 
-  // Add enabled USPS services.
-  foreach ($enabled as $service) {
+  // Add enabled USPS services to the commerce_shipping service info.
+  foreach ($enabled as $machine_name => $service) {
     if ($service) {
-      $machine_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service));
-      $services[$machine_name] = array(
-        'title' => t($service),
-        'description' => t('USPS @service service', array('@service' => $available[$service])),
-        'display_title' => t($available[$service]),
+      $registered_services[$machine_name] = array(
+        'title' => $available[$machine_name]['title'],
+        'description' => $available[$machine_name]['title'],
+        'display_title' => $available[$machine_name]['title'],
         'shipping_method' => 'usps',
         'price_component' => 'shipping',
         'callbacks' => array(
@@ -63,7 +61,7 @@ function commerce_usps_commerce_shipping_service_info() {
     }
   }
 
-  return $services;
+  return $registered_services;
 }
 
 /**
@@ -80,65 +78,24 @@ function commerce_usps_commerce_shipping_service_info() {
  */
 function commerce_usps_rate($service, $order) {
   // Attempt to recover cached shipping rates.
-  // @todo: Allow the setting of commerce_usps_rates_timeout.
   $rates = commerce_shipping_rates_cache_get('usps', $order, variable_get('commerce_usps_rates_timeout', 0));
+
   // If no cached rates were found or they have expired.
   if (!$rates) {
     // Load files required for building requests.
-    require_once dirname(__FILE__) . '/commerce_usps.xml.inc';
-    $rates = array();
+    require_once dirname(__FILE__) . '/includes/commerce_usps.xml.inc';
 
-    // Build the request.
-    $request = commerce_usps_build_rate_request($order);
+    $shipping_address = commerce_usps_get_order_shipping_address($order);
 
-    if ($request) {
-      // Submit the request.
-      $response = commerce_usps_api_request($request, t('Requesting shipping rates for Order @order_number', array('@order_number' => $order->order_number)));
-
-      if (!empty($response->Package)) {
-        // Parse the response to cache all requested rates for the order.
-        foreach ($response->Package as $package) {
-          // If the package contains an error.
-          if ($package->Error) {
-            // Log the error.
-            $watchdog_meta = array(
-              '@number' => !empty($package->Error->Number) ? $package->Error->Number->asXML() : t('No number'),
-              '@description' => !empty($package->Error->Description) ? $package->Error->Description->asXML() : t('No description'),
-              '@source' => !empty($package->Error->Source) ? $package->Error->Source->asXML() : t('No source'),
-            );
-            watchdog('usps', 'Number: @number<br />Description: @description<br />Source: @source', $watchdog_meta, WATCHDOG_ERROR);
-          }
-          else {
-            // Add an item to the rates array for the current service.
-            // @todo: Use commerce currency.
-            // @todo: Markup rates using rules?
-            $mail_service = commerce_usps_trim_service($package->Postage->MailService);
-            $service_name = commerce_usps_return_lookup($mail_service);
-            $rates[$service_name] = array(
-              'amount' => commerce_currency_decimal_to_amount(commerce_usps_rate_markup((string) $package->Postage->Rate), 'USD'),
-              'currency_code' => 'USD',
-              'data' => array(),
-            );
-          }
-        }
-
-        // Cache the calculated rates for subsequent requests.
-        commerce_shipping_rates_cache_set('usps', $order, $rates);
-      }
-      elseif (empty($response)) {
-        // Log the error.
-        $watchdog_meta = array(
-          '@number' => !empty($response->Number) ? $response->Number->asXML() : t('No number'),
-          '@description' => !empty($response->Description) ? $response->Description->asXML() : t('No description'),
-          '@source' => !empty($response->Source) ? $response->Source->asXML() : t('No source'),
-        );
-        watchdog('usps', 'Number: @number<br />Description: @description<br />Source: @source', $watchdog_meta, WATCHDOG_ERROR);
-      }
-      else {
-        $watchdog_meta =  array('!configuration' => l('configuration', 'admin/commerce/config/shipping/methods/usps/edit'));
-        watchdog('usps', 'No response was received from USPS. Make sure you have the correct URL set in your !configuration.', $watchdog_meta, WATCHDOG_ERROR);
-      }
+    // Determine which type of rate request to submit.
+    if ($shipping_address['country'] == 'US') {
+      $rates = commerce_usps_rate_v4_request($order, $shipping_address);
     }
+    else{
+      $rates = commerce_usps_intl_rate_v2_request($order, $shipping_address);
+    }
+
+    commerce_shipping_rates_cache_set('usps', $order, $rates);
   }
 
   // Return the rate for the requested service or FALSE if not found.
@@ -146,77 +103,428 @@ function commerce_usps_rate($service, $order) {
 }
 
 /**
- * Returns USPS codes for their services.
+ * Returns an array of USPS services and related data.
+ *
+ * @param string $type
+ *   A string to be matched agains the service array keys for destination type.
  *
  * @return array
  *   USPS codes for making the XML request
  */
-function commerce_usps_service_list() {
-  return array(
-    'FIRST CLASS' => t('First Class'),
-    'PRIORITY' => t('Priority'),
-    'EXPRESS' => t('Express'),
-    'PARCEL' => t('Parcel'),
-    'MEDIA' => t('Media'),
-    'LIBRARY' => t('Library'),
+function commerce_usps_service_list($type = '') {
+  $usps_services = array(
+    'domestic' => array(
+      'usps_first_class' => array(
+        'request_name' => 'FIRST CLASS',
+        'title' => t('USPS First Class'),
+        'id' => 0,
+      ),
+      'usps_priority_mail' => array(
+        'request_name' => 'PRIORITY',
+        'title' => t('USPS Priority Mail'),
+        'id' => 1,
+      ),
+      'usps_express_mail' => array(
+        'request_name' => 'EXPRESS',
+        'title' => t('USPS Express Mail'),
+        'id' => 3,
+      ),
+      'usps_standard_post' => array(
+        'request_name' => 'STANDARD POST',
+        'title' => t('USPS Standard Post'),
+        'id' => 4,
+      ),
+      'usps_media_mail' => array(
+        'request_name' => 'MEDIA',
+        'title' => t('USPS Media Mail'),
+        'id' => 6,
+      ),
+      'usps_library_mail' => array(
+        'request_name' => 'LIBRARY',
+        'title' => t('USPS Library Mail'),
+        'id' => 7,
+      ),
+    ),
+    'international' => array(
+      'usps_pm_express_international' => array(
+        'title' => t('USPS Priority Mail Express International'),
+        'id' => 1,
+      ),
+      'usps_pmi' => array(
+        'title' => t('USPS Priority Mail International'),
+        'id' => 2,
+      ),
+      'usps_global_express_guarnteed' => array(
+        'title' => t('USPS Global Express Guaranteedf'),
+        'id' => 4,
+      ),
+      'usps_pmi_small_flat_rate_box' => array(
+        'title' => t('USPS Priority Mail International Small Flat Rate Box'),
+        'id' => 16,
+      ),
+      'usps_pmi_medium_flat_rate_box' => array(
+        'title' => t('USPS Priority Mail International Medium Flat Rate Box'),
+        'id' => 9,
+      ),
+      'usps_pmi_large_flat_rate_box' => array(
+        'title' => t('USPS Priority Mail International Large Flat Rate Box'),
+        'id' => 11,
+      ),
+      'usps_fcm_international_package' => array(
+        'title' => t('USPS First-Class Mail International Package'),
+        'id' => 15,
+      ),
+      'usps_pmi_express_flat_rate_boxes' => array(
+        'title' => t('USPS Priority Mail Express International Flat Rate Boxes'),
+        'id' => 26,
+      ),
+    ),
   );
+
+  // Allow other modules to add or alter services.
+  drupal_alter('commerce_usps_services_list', $usps_services);
+
+  // If the service destination is defined, return only those services.
+  if (!empty($usps_services[$type])) {
+    return $usps_services[$type];
+  }
+
+  return $usps_services;
 }
 
 /**
- * USPS return value for MailService is differs from what is used for request.
- * This array is used map the MailService to the commerce_usps_service_list
- *
- * @param sting $mail_service
- *   A string that matches what is returned from USPS
- *
- * @return string
- *   A string that matches the initial codes used for XML request
+ * Helper function to log USPS messages.
  */
-function commerce_usps_return_lookup($mail_service) {
-  $service_map = array(
-    'First-Class Mail' => 'FIRST CLASS',
-    'Priority Mail' => 'PRIORITY',
-    'Express Mail' => 'EXPRESS',
-    'Parcel Post' => 'PARCEL',
-    'Media Mail' => 'MEDIA',
-    'Library Mail' => 'LIBRARY',
-  );
-  if (isset($service_map[$mail_service])) {
-    $service_name = preg_replace('/[^a-z0-9_]+/', '_', drupal_strtolower($service_map[$mail_service]));
-    return $service_name;
+function commerce_usps_log($message, $variables = array(), $severity = WATCHDOG_NOTICE) {
+  if (variable_get('commerce_usps_log')) {
+    watchdog('commerce_usps', $message, $variables, $severity);
   }
 }
 
 /**
- * Function to clean the html garbage from rate MailService result *
- *
- * @param sting $service_name
- *   The string returned by USPS that contains extra characters
- *
- * @return string
- *   A cleaned and fomatted string
+ * Look up a USPS shipping service by it's id.
  */
-function commerce_usps_trim_service($service_name) {
-  return str_replace('&lt;sup&gt;&amp;reg;&lt;/sup&gt;', '', $service_name);
+function commerce_usps_service_by_id($id, $type) {
+  foreach (commerce_usps_service_list($type) as $machine_name => $service) {
+    if ($service['id'] == $id) {
+      return array_merge(array('machine_name' => $machine_name), $service);
+    }
+  }
+}
+
+function commerce_usps_get_order_weight($order) {
+  // Use commerce physical to determine the order weight.
+  $weight = commerce_physical_order_weight($order, 'lb');
+
+  // If order contains no weight skip sending request to usps.
+  if (!is_array($weight) || $weight['weight'] == NULL) {
+    return FALSE;
+  }
+
+  // Calculate the weight in ounces and pounds.
+  $ounces = 16 * ($weight['weight'] - floor($weight['weight']));
+  $pounds = floor($weight['weight']);
+
+  return array('pounds' => $pounds, 'ounces' => $ounces);
+}
+
+function commerce_usps_get_order_shipping_address($order) {
+  $shipping_address = addressfield_default_values();
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+
+  // Determine the shipping profile reference field name for the order.
+  $field_name = commerce_physical_order_shipping_field_name($order);
+  $shipping_profile = $order_wrapper->{$field_name}->value();
+
+  // Prepare the shipping address for use in the request.
+  if (!empty($order_wrapper->{$field_name}->commerce_customer_address)) {
+    $shipping_address = $order_wrapper->{$field_name}->commerce_customer_address->value();
+  }
+
+  return $shipping_address;
+}
+
+
+function commerce_usps_get_shipment_value($order) {
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $order_total = $order_wrapper->commerce_order_total->value();
+  $shipment_value = 0;
+
+  // Loop over each line item on the order.
+  foreach ($order_wrapper->commerce_line_items as $line_item_wrapper) {
+    if (commerce_physical_line_item_shippable($line_item_wrapper->value())) {
+      $line_item_total = $line_item_wrapper->commerce_total->value();
+
+      // Increment the insurance value from the line items value.
+      $shipment_value += $line_item_total['amount'];
+    }
+  }
+
+  return $shipment_value;
 }
 
 /**
- * Returns the marked-up rate.
  *
- * @param float $rate
- *   A base USPS service rate.
- *
- * @return float
- *   The rate after markup has been applied.
+ * Convret contry code to USPS shipping compatible name
+ * Grabbed from location project (http://drupal.org/project/location).
+ * @return
+ *   An string value for the defined country
  */
-function commerce_usps_rate_markup($rate) {
-  $markup = variable_get('commerce_usps_markup');
-
-  switch (variable_get('commerce_usps_markup_type', 'percentage')) {
-    case 'amount':
-      return $rate + $markup;
-    default:
-      // Percentage.
-      return $rate * (1 + ($markup / 100));
+function commerce_usps_country_get_predefined_list($country_code) {
+  //Todo: Update this list so that it returns strings defined on
+  //http://pe.usps.gov/text/imm/immctry.htm
+  $countries = array(
+    'AD' => 'Andorra',
+    'AE' => 'Abu Dhabi (United Arab Emirates)',
+    'AF' => 'Afghanistan',
+    'AG' => 'Antigua and Barbuda',
+    'AI' => 'Anguilla',
+    'AL' => 'Albania',
+    'AM' => 'Armenia',
+    'AN' => 'Netherlands Antilles',
+    'AO' => 'Angola',
+    'AQ' => 'Antarctica',
+    'AR' => 'Argentina',
+    'AS' => 'American Samoa',
+    'AT' => 'Austria',
+    'AU' => 'Australia',
+    'AW' => 'Aruba',
+    'AX' => 'Aland Islands',
+    'AZ' => 'Azerbaijan',
+    'BA' => 'Bosnia and Herzegovina',
+    'BB' => 'Barbados',
+    'BD' => 'Bangladesh',
+    'BE' => 'Belgium',
+    'BF' => 'Burkina Faso',
+    'BG' => 'Bulgaria',
+    'BH' => 'Bahrain',
+    'BI' => 'Burundi',
+    'BJ' => 'Benin',
+    'BL' => 'Saint Barthélemy',
+    'BM' => 'Bermuda',
+    'BN' => 'Brunei',
+    'BO' => 'Bolivia',
+    'BR' => 'Brazil',
+    'BS' => 'Bahamas',
+    'BT' => 'Bhutan',
+    'BV' => 'Bouvet Island',
+    'BW' => 'Botswana',
+    'BY' => 'Belarus',
+    'BZ' => 'Belize',
+    'CA' => 'Canada',
+    'CC' => 'Cocos (Keeling) Islands',
+    'CD' => 'Congo (Kinshasa)',
+    'CF' => 'Central African Republic',
+    'CG' => 'Congo (Brazzaville)',
+    'CH' => 'Switzerland',
+    'CI' => 'Ivory Coast',
+    'CK' => 'Cook Islands',
+    'CL' => 'Chile',
+    'CM' => 'Cameroon',
+    'CN' => 'China',
+    'CO' => 'Colombia',
+    'CR' => 'Costa Rica',
+    'CU' => 'Cuba',
+    'CW' => 'Curaçao',
+    'CV' => 'Cape Verde',
+    'CX' => 'Christmas Island',
+    'CY' => 'Cyprus',
+    'CZ' => 'Czech Republic',
+    'DE' => 'Germany',
+    'DJ' => 'Djibouti',
+    'DK' => 'Denmark',
+    'DM' => 'Dominica',
+    'DO' => 'Dominican Republic',
+    'DZ' => 'Algeria',
+    'EC' => 'Ecuador',
+    'EE' => 'Estonia',
+    'EG' => 'Egypt',
+    'EH' => 'Western Sahara',
+    'ER' => 'Eritrea',
+    'ES' => 'Spain',
+    'ET' => 'Ethiopia',
+    'FI' => 'Finland',
+    'FJ' => 'Fiji',
+    'FK' => 'Falkland Islands',
+    'FM' => 'Micronesia',
+    'FO' => 'Faroe Islands',
+    'FR' => 'France',
+    'GA' => 'Gabon',
+    'GB' => 'Great Britain and Northern Ireland',
+    'GD' => 'Grenada',
+    'GE' => 'Georgia',
+    'GF' => 'French Guiana',
+    'GG' => 'Guernsey',
+    'GH' => 'Ghana',
+    'GI' => 'Gibraltar',
+    'GL' => 'Greenland',
+    'GM' => 'Gambia',
+    'GN' => 'Guinea',
+    'GP' => 'Guadeloupe',
+    'GQ' => 'Equatorial Guinea',
+    'GR' => 'Greece',
+    'GS' => 'South Georgia and the South Sandwich Islands',
+    'GT' => 'Guatemala',
+    'GU' => 'Guam',
+    'GW' => 'Guinea-Bissau',
+    'GY' => 'Guyana',
+    'HK' => 'Hong Kong',
+    'HM' => 'Heard Island and McDonald Islands',
+    'HN' => 'Honduras',
+    'HR' => 'Croatia',
+    'HT' => 'Haiti',
+    'HU' => 'Hungary',
+    'ID' => 'Indonesia',
+    'IE' => 'Ireland',
+    'IL' => 'Israel',
+    'IM' => 'Isle of Man',
+    'IN' => 'India',
+    'IO' => 'British Indian Ocean Territory',
+    'IQ' => 'Iraq',
+    'IR' => 'Iran',
+    'IS' => 'Iceland',
+    'IT' => 'Italy',
+    'JE' => 'Jersey',
+    'JM' => 'Jamaica',
+    'JO' => 'Jordan',
+    'JP' => 'Japan',
+    'KE' => 'Kenya',
+    'KG' => 'Kyrgyzstan',
+    'KH' => 'Cambodia',
+    'KI' => 'Kiribati',
+    'KM' => 'Comoros',
+    'KN' => 'Saint Kitts and Nevis',
+    'KP' => 'North Korea',
+    'KR' => 'South Korea',
+    'KW' => 'Kuwait',
+    'KY' => 'Cayman Islands',
+    'KZ' => 'Kazakhstan',
+    'LA' => 'Laos',
+    'LB' => 'Lebanon',
+    'LC' => 'Saint Lucia',
+    'LI' => 'Liechtenstein',
+    'LK' => 'Sri Lanka',
+    'LR' => 'Liberia',
+    'LS' => 'Lesotho',
+    'LT' => 'Lithuania',
+    'LU' => 'Luxembourg',
+    'LV' => 'Latvia',
+    'LY' => 'Libya',
+    'MA' => 'Morocco',
+    'MC' => 'Monaco',
+    'MD' => 'Moldova',
+    'ME' => 'Montenegro',
+    'MF' => 'Saint Martin (French part)',
+    'MG' => 'Madagascar',
+    'MH' => 'Marshall Islands',
+    'MK' => 'Macedonia',
+    'ML' => 'Mali',
+    'MM' => 'Myanmar',
+    'MN' => 'Mongolia',
+    'MO' => 'Macao S.A.R., China',
+    'MP' => 'Northern Mariana Islands',
+    'MQ' => 'Martinique',
+    'MR' => 'Mauritania',
+    'MS' => 'Montserrat',
+    'MT' => 'Malta',
+    'MU' => 'Mauritius',
+    'MV' => 'Maldives',
+    'MW' => 'Malawi',
+    'MX' => 'Mexico',
+    'MY' => 'Malaysia',
+    'MZ' => 'Mozambique',
+    'NA' => 'Namibia',
+    'NC' => 'New Caledonia',
+    'NE' => 'Niger',
+    'NF' => 'Norfolk Island',
+    'NG' => 'Nigeria',
+    'NI' => 'Nicaragua',
+    'NL' => 'Netherlands',
+    'NO' => 'Norway',
+    'NP' => 'Nepal',
+    'NR' => 'Nauru',
+    'NU' => 'Niue',
+    'NZ' => 'New Zealand',
+    'OM' => 'Oman',
+    'PA' => 'Panama',
+    'PE' => 'Peru',
+    'PF' => 'French Polynesia',
+    'PG' => 'Papua New Guinea',
+    'PH' => 'Philippines',
+    'PK' => 'Pakistan',
+    'PL' => 'Poland',
+    'PM' => 'Saint Pierre and Miquelon',
+    'PN' => 'Pitcairn',
+    'PR' => 'Puerto Rico',
+    'PS' => 'Palestinian Territory',
+    'PT' => 'Portugal',
+    'PW' => 'Palau',
+    'PY' => 'Paraguay',
+    'QA' => 'Qatar',
+    'RE' => 'Reunion',
+    'RO' => 'Romania',
+    'RS' => 'Serbia',
+    'RU' => 'Russia',
+    'RW' => 'Rwanda',
+    'SA' => 'Saudi Arabia',
+    'SB' => 'Solomon Islands',
+    'SC' => 'Seychelles',
+    'SD' => 'Sudan',
+    'SE' => 'Sweden',
+    'SG' => 'Singapore',
+    'SH' => 'Saint Helena',
+    'SI' => 'Slovenia',
+    'SJ' => 'Svalbard and Jan Mayen',
+    'SK' => 'Slovakia',
+    'SL' => 'Sierra Leone',
+    'SM' => 'San Marino',
+    'SN' => 'Senegal',
+    'SO' => 'Somalia',
+    'SR' => 'Suriname',
+    'ST' => 'Sao Tome and Principe',
+    'SV' => 'El Salvador',
+    'SY' => 'Syria',
+    'SZ' => 'Swaziland',
+    'TC' => 'Turks and Caicos Islands',
+    'TD' => 'Chad',
+    'TF' => 'French Southern Territories',
+    'TG' => 'Togo',
+    'TH' => 'Thailand',
+    'TJ' => 'Tajikistan',
+    'TK' => 'Tokelau',
+    'TL' => 'Timor-Leste',
+    'TM' => 'Turkmenistan',
+    'TN' => 'Tunisia',
+    'TO' => 'Tonga',
+    'TR' => 'Turkey',
+    'TT' => 'Trinidad and Tobago',
+    'TV' => 'Tuvalu',
+    'TW' => 'Taiwan',
+    'TZ' => 'Tanzania',
+    'UA' => 'Ukraine',
+    'UG' => 'Uganda',
+    'UM' => 'United States Minor Outlying Islands',
+    'US' => 'United States',
+    'UY' => 'Uruguay',
+    'UZ' => 'Uzbekistan',
+    'VA' => 'Vatican',
+    'VC' => 'Saint Vincent and the Grenadines',
+    'VE' => 'Venezuela',
+    'VG' => 'British Virgin Islands',
+    'VI' => 'U.S. Virgin Islands',
+    'VN' => 'Vietnam',
+    'VU' => 'Vanuatu',
+    'WF' => 'Wallis and Futuna',
+    'WS' => 'Samoa',
+    'YE' => 'Yemen',
+    'YT' => 'Mayotte',
+    'ZA' => 'South Africa',
+    'ZM' => 'Zambia',
+    'ZW' => 'Zimbabwe',
+  );
+  if (isset($countries[$country_code])) {
+    return $countries[$country_code];
+  } else {
+    return;
   }
 }
