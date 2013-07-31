@@ -62,7 +62,7 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
         // Make sure that the package service is registered.
         if (!empty($usps_service['machine_name'])) {
           $rates[$usps_service['machine_name']] = array(
-            'amount' => commerce_currency_decimal_to_amount($package->Postage->Rate, commerce_default_currency()),
+            'amount' => commerce_currency_decimal_to_amount((string) $package->Postage->Rate, commerce_default_currency()),
             'currency_code' => commerce_default_currency(),
             'data' => array(),
             );
@@ -125,7 +125,7 @@ function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
       // Make sure that the package service is registered.
       if (!empty($usps_service['machine_name'])) {
         $rates[$usps_service['machine_name']] = array(
-          'amount' => commerce_currency_decimal_to_amount($service->Postage, commerce_default_currency()),
+          'amount' => commerce_currency_decimal_to_amount((string) $service->Postage, commerce_default_currency()),
           'currency_code' => commerce_default_currency(),
           'data' => array(),
           );
