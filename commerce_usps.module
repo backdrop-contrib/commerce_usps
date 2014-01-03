@@ -42,7 +42,7 @@ function commerce_usps_commerce_shipping_method_info() {
  */
 function commerce_usps_commerce_shipping_service_info() {
   $registered_services = array();
-  $available = array_merge(commerce_usps_service_list('domestic'), commerce_usps_service_list('international')) ;
+  $available = array_merge(commerce_usps_service_list('domestic'), commerce_usps_service_list('international'));
   $enabled = array_merge(variable_get('commerce_usps_services', array()), variable_get('commerce_usps_services_int', array()));
 
   // Add enabled USPS services to the commerce_shipping service info.
@@ -65,8 +65,7 @@ function commerce_usps_commerce_shipping_service_info() {
 }
 
 /**
- * Shipping service callback: returns a base price array for a shipping service
- * calculated for the given order.
+ * Returns a base price array for a shipping service calculated for the order.
  *
  * @param array $service
  *   An array describing the shipping service.
@@ -92,7 +91,7 @@ function commerce_usps_rate($service, $order) {
     if ($shipping_address['country'] == 'US') {
       $rates = commerce_usps_rate_v4_request($order, $shipping_address);
     }
-    else{
+    else {
       $rates = commerce_usps_intl_rate_v2_request($order, $shipping_address);
     }
 
@@ -106,7 +105,7 @@ function commerce_usps_rate($service, $order) {
 /**
  * Validate that the order can return a successful rate request.
  *
- * @param  object $order
+ * @param object $order
  *   The order object.
  *
  * @return boolean
@@ -237,6 +236,9 @@ function commerce_usps_service_by_id($id, $type) {
   }
 }
 
+/**
+ * Determine the weight of the order.
+ */
 function commerce_usps_get_order_weight($order) {
   // Use commerce physical to determine the order weight.
   $weight = commerce_physical_order_weight($order, 'lb');
@@ -253,6 +255,9 @@ function commerce_usps_get_order_weight($order) {
   return array('pounds' => $pounds, 'ounces' => $ounces);
 }
 
+/**
+ * Get the shipping address of the order.
+ */
 function commerce_usps_get_order_shipping_address($order) {
   $shipping_address = addressfield_default_values();
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
@@ -269,7 +274,9 @@ function commerce_usps_get_order_shipping_address($order) {
   return $shipping_address;
 }
 
-
+/**
+ * Produce the shipping value for each line item.
+ */
 function commerce_usps_get_shipment_value($order) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $order_total = $order_wrapper->commerce_order_total->value();
@@ -289,15 +296,15 @@ function commerce_usps_get_shipment_value($order) {
 }
 
 /**
+ * Convret contry code to USPS shipping compatible name.
  *
- * Convret contry code to USPS shipping compatible name
  * Grabbed from location project (http://drupal.org/project/location).
  * @return
  *   An string value for the defined country
  */
 function commerce_usps_country_get_predefined_list($country_code) {
-  //Todo: Update this list so that it returns strings defined on
-  //http://pe.usps.gov/text/imm/immctry.htm
+  // @TODO: Update this list so that it returns strings defined on USPS.gov.
+  // Reference http://pe.usps.gov/text/imm/immctry.htm for list.
   $countries = array(
     'AD' => 'Andorra',
     'AE' => 'Abu Dhabi (United Arab Emirates)',
@@ -549,7 +556,8 @@ function commerce_usps_country_get_predefined_list($country_code) {
   );
   if (isset($countries[$country_code])) {
     return $countries[$country_code];
-  } else {
+  }
+  else {
     return;
   }
 }

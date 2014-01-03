@@ -8,9 +8,9 @@
 /**
  * Builds a domestics USPS rate request.
  *
- * @param $order object
+ * @param object $order
  *   The commerce order object.
- * @param $shipping_address array
+ * @param object $shipping_address
  *   The commerce_customer_address array of the shipping profile.
  *
  * @return array
@@ -66,7 +66,7 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
             'amount' => commerce_currency_decimal_to_amount((string) $package->Postage->Rate, commerce_default_currency()),
             'currency_code' => commerce_default_currency(),
             'data' => array(),
-            );
+          );
         }
       }
     }
@@ -77,9 +77,9 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
 /**
  * Builds an international USPS rate request.
  *
- * @param $order object
+ * @param object $order
  *   The commerce order object.
- * @param $shipping_address array
+ * @param array $shipping_address
  *   The commerce_customer_address array of the shipping profile.
  *
  * @return array
@@ -130,7 +130,7 @@ function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
           'amount' => commerce_currency_decimal_to_amount((string) $service->Postage, commerce_default_currency()),
           'currency_code' => commerce_default_currency(),
           'data' => array(),
-          );
+        );
       }
     }
   }

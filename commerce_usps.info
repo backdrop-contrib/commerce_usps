@@ -5,6 +5,4 @@ dependencies[] = commerce
 dependencies[] = commerce_shipping
 dependencies[] = commerce_physical
 
-files[] = includes/commerce_usps.xml.inc;
-files[] = includes/commerce_usps.admin.inc;
 core = 7.x
