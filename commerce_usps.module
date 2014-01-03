@@ -81,7 +81,8 @@ function commerce_usps_rate($service, $order) {
   $rates = commerce_shipping_rates_cache_get('usps', $order, variable_get('commerce_usps_rates_timeout', 0));
 
   // If no cached rates were found or they have expired.
-  if (!$rates) {
+  if (!is_array($rates) && commerce_usps_validate_order($order)) {
+
     // Load files required for building requests.
     require_once dirname(__FILE__) . '/includes/commerce_usps.xml.inc';
 
@@ -95,11 +96,35 @@ function commerce_usps_rate($service, $order) {
       $rates = commerce_usps_intl_rate_v2_request($order, $shipping_address);
     }
 
-    commerce_shipping_rates_cache_set('usps', $order, $rates);
+    commerce_shipping_rates_cache_set('usps', $order, (array) $rates);
   }
 
   // Return the rate for the requested service or FALSE if not found.
   return isset($rates[$service['name']]) ? $rates[$service['name']] : FALSE;
+}
+
+/**
+ * Validate that the order can return a successful rate request.
+ *
+ * @param  object $order
+ *   The order object.
+ *
+ * @return boolean
+ */
+function commerce_usps_validate_order($order) {
+  $shipping_address = commerce_usps_get_order_shipping_address($order);
+
+  // US shipping addresses require a zipcode.
+  if ($shipping_address['country'] == 'US' && empty($shipping_address['postal_code'])) {
+    return FALSE;
+  }
+
+  // Make sure the order is shippable.
+  if (!commerce_usps_get_order_weight($order)) {
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 /**
