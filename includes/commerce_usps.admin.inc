@@ -81,7 +81,7 @@ function commerce_usps_settings_form() {
     '#title' => t('Log messages from this module (useful for debugging)'),
     '#options' => array(
       0 => t('Do not log messages'),
-      1 => t('Log messages '),
+      1 => t('Log messages'),
     ),
     '#default_value' => variable_get('commerce_usps_log', 0),
   );

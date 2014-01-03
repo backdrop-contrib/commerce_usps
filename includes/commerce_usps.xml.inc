@@ -87,7 +87,6 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
  */
 function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
   $rates = array();
-  $usps_services = commerce_usps_service_list('international');
 
   $weight = commerce_usps_get_order_weight($order);
 

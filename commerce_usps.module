@@ -108,7 +108,8 @@ function commerce_usps_rate($service, $order) {
  * @param object $order
  *   The order object.
  *
- * @return boolean
+ * @return bool
+ *   Returns TRUE if the order passes validation.
  */
 function commerce_usps_validate_order($order) {
   $shipping_address = commerce_usps_get_order_shipping_address($order);
@@ -130,7 +131,7 @@ function commerce_usps_validate_order($order) {
  * Returns an array of USPS services and related data.
  *
  * @param string $type
- *   A string to be matched agains the service array keys for destination type.
+ *   A string to be matched against the service array keys for destination type.
  *
  * @return array
  *   USPS codes for making the XML request
@@ -264,7 +265,6 @@ function commerce_usps_get_order_shipping_address($order) {
 
   // Determine the shipping profile reference field name for the order.
   $field_name = commerce_physical_order_shipping_field_name($order);
-  $shipping_profile = $order_wrapper->{$field_name}->value();
 
   // Prepare the shipping address for use in the request.
   if (!empty($order_wrapper->{$field_name}->commerce_customer_address)) {
@@ -279,7 +279,6 @@ function commerce_usps_get_order_shipping_address($order) {
  */
 function commerce_usps_get_shipment_value($order) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
-  $order_total = $order_wrapper->commerce_order_total->value();
   $shipment_value = 0;
 
   // Loop over each line item on the order.
@@ -299,8 +298,9 @@ function commerce_usps_get_shipment_value($order) {
  * Convret contry code to USPS shipping compatible name.
  *
  * Grabbed from location project (http://drupal.org/project/location).
- * @return
- *   An string value for the defined country
+ *
+ * @return string
+ *   An string value for the defined country.
  */
 function commerce_usps_country_get_predefined_list($country_code) {
   // @TODO: Update this list so that it returns strings defined on USPS.gov.
