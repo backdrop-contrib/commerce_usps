@@ -76,6 +76,11 @@ function commerce_usps_settings_form() {
     '#collapsed' => TRUE,
     '#collapsible' => TRUE,
   );
+  $form['advanced']['commerce_usps_show_logo'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Show USPS logo next to service'),
+    '#default_value' => variable_get('commerce_usps_show_logo', FALSE),
+  );
   $form['advanced']['commerce_usps_log'] = array(
     '#type' => 'radios',
     '#title' => t('Log messages from this module (useful for debugging)'),
@@ -123,6 +128,7 @@ function commerce_usps_settings_form_submit($form, &$form_state) {
     'commerce_usps_services_int',
     'commerce_usps_connection_address',
     'commerce_usps_user',
+    'commerce_usps_show_logo',
     'commerce_usps_log',
   );
   $services = variable_get('commerce_usps_services', NULL);
