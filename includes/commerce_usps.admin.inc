@@ -62,12 +62,12 @@ function commerce_usps_settings_form() {
     '#description' => t('Leave this set to http://production.shippingapis.com/ShippingAPI.dll unless you have a reason to change it.'),
     '#required' => TRUE,
   );
-  $production_access = l(t('production access'), '');
+  $production_access = l(t('production access'), 'https://www.usps.com/business/web-tools-apis/developers-center.htm');
   $form['api']['commerce_usps_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
     '#default_value' => variable_get('commerce_usps_user', ''),
-    '#description' => t('The user name for your USPS account. <strong>You must have been granted !production_access for this module to work.', array('!production_access' => $production_access)),
+    '#description' => t('The username for your USPS account.') . ' <strong>' . t('You must have been granted !production_access for this module to work.', array('!production_access' => $production_access)) . '</strong>',
     '#required' => TRUE,
   );
   $form['advanced'] = array(
