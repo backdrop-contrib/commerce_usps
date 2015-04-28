@@ -255,7 +255,7 @@ function commerce_usps_get_order_weight($order) {
   }
 
   // Calculate the weight in ounces and pounds.
-  $ounces = 16 * ($weight['weight'] - floor($weight['weight']));
+  $ounces = number_format(16 * ($weight['weight'] - floor($weight['weight'])), 1);
   $pounds = floor($weight['weight']);
 
   return array('pounds' => $pounds, 'ounces' => $ounces);
