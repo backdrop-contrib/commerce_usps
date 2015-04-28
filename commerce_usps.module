@@ -319,12 +319,12 @@ function commerce_usps_commerce_shipping_service_rate_options_alter(&$options, $
 }
 
 /**
- * Convret contry code to USPS shipping compatible name.
+ * Convert country code to USPS shipping compatible name.
  *
  * Grabbed from location project (http://drupal.org/project/location).
  *
  * @return string
- *   An string value for the defined country.
+ *   A string value for the defined country.
  */
 function commerce_usps_country_get_predefined_list($country_code) {
   // @TODO: Update this list so that it returns strings defined on USPS.gov.
