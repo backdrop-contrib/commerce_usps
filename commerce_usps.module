@@ -114,6 +114,11 @@ function commerce_usps_rate($service, $order) {
 function commerce_usps_validate_order($order) {
   $shipping_address = commerce_usps_get_order_shipping_address($order);
 
+  // We have to have a shipping address to get rates.
+  if (empty($shipping_address)) {
+    return FALSE;
+  }
+
   // US shipping addresses require a zipcode.
   if ($shipping_address['country'] == 'US' && empty($shipping_address['postal_code'])) {
     return FALSE;
@@ -260,7 +265,7 @@ function commerce_usps_get_order_weight($order) {
  * Get the shipping address of the order.
  */
 function commerce_usps_get_order_shipping_address($order) {
-  $shipping_address = addressfield_default_values();
+  $shipping_address = array();
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
 
   // Determine the shipping profile reference field name for the order.
