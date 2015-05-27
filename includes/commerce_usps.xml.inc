@@ -92,6 +92,7 @@ function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
 
   $request = new SimpleXMLElement('<IntlRateV2Request/>');
   $request->addAttribute('USERID', variable_get('commerce_usps_user', ''));
+  $request->addChild('Revision', 2);
   $shipment_value = commerce_usps_get_shipment_value($order);
 
   // @TODO: Support multiple packages based on physical attributes.
@@ -109,6 +110,7 @@ function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
   $package->addChild('Length', '');
   $package->addChild('Height', '');
   $package->addChild('Girth', '');
+  $package->addChild('OriginZip', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
   $package->addChild('CommercialFlag', 'N');
 
   drupal_alter('commerce_usps_intl_rate_v2_request', $request);
