@@ -185,7 +185,7 @@ function commerce_usps_service_list($type = '') {
         'id' => 2,
       ),
       'usps_global_express_guarnteed' => array(
-        'title' => t('USPS Global Express Guaranteedf'),
+        'title' => t('USPS Global Express Guaranteed'),
         'id' => 4,
       ),
       'usps_pmi_small_flat_rate_box' => array(
