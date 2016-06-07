@@ -299,7 +299,7 @@ function commerce_usps_get_shipment_value($order) {
   return $shipment_value;
 }
 
- /**
+/**
  * Implements hook_commerce_shipping_service_rate_options_alter().
  */
 function commerce_usps_commerce_shipping_service_rate_options_alter(&$options, $order) {
@@ -310,7 +310,7 @@ function commerce_usps_commerce_shipping_service_rate_options_alter(&$options, $
     if (file_exists($image)) {
       $services = commerce_usps_service_list();
       foreach ($options as $key => &$option) {
-        if ( in_array(drupal_strtolower($key), array_keys( $services['domestic'] )) || in_array(drupal_strtolower($key), array_keys( $services['international'] )) ) {
+        if (in_array(drupal_strtolower($key), array_keys($services['domestic'])) || in_array(drupal_strtolower($key), array_keys($services['international']))) {
           $option = theme('image', array('path' => $image)) . ' ' . $option;
         }
       }
