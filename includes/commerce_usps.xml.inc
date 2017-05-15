@@ -31,18 +31,20 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
   $i = 1;
 
   foreach (variable_get('commerce_usps_services', array()) as $machine_name => $service) {
-    $package = $request->addChild('Package');
-    $package->addAttribute('ID', $i);
-    $package->addChild('Service', $usps_services[$machine_name]['request_name']);
-    $package->addChild('FirstClassMailType', 'PARCEL');
-    $package->addChild('ZipOrigination', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
-    $package->addChild('ZipDestination', substr($shipping_address['postal_code'], 0, 5));
-    $package->addChild('Pounds', $weight['pounds']);
-    $package->addChild('Ounces', $weight['ounces']);
-    $package->addChild('Container', 'VARIABLE');
-    $package->addChild('Size', 'REGULAR');
-    $package->addChild('Machinable', 'TRUE');
-    $i++;
+    if (!empty($service)) {
+      $package = $request->addChild('Package');
+      $package->addAttribute('ID', $i);
+      $package->addChild('Service', $usps_services[$machine_name]['request_name']);
+      $package->addChild('FirstClassMailType', 'PARCEL');
+      $package->addChild('ZipOrigination', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
+      $package->addChild('ZipDestination', substr($shipping_address['postal_code'], 0, 5));
+      $package->addChild('Pounds', $weight['pounds']);
+      $package->addChild('Ounces', $weight['ounces']);
+      $package->addChild('Container', 'VARIABLE');
+      $package->addChild('Size', 'REGULAR');
+      $package->addChild('Machinable', 'TRUE');
+      $i++;
+    }
   }
 
   drupal_alter('commerce_usps_rate_v4_request', $request);
