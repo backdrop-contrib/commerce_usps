@@ -160,8 +160,8 @@ function commerce_usps_service_list($type = '') {
         'id' => 3,
       ),
       'usps_standard_post' => array(
-        'request_name' => 'STANDARD POST',
-        'title' => t('USPS Standard Post'),
+        'request_name' => 'Retail Ground',
+        'title' => t('USPS Retail Ground'),
         'id' => 4,
       ),
       'usps_media_mail' => array(
