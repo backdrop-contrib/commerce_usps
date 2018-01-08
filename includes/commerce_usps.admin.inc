@@ -62,7 +62,7 @@ function commerce_usps_settings_form() {
     '#description' => t('Leave this set to http://production.shippingapis.com/ShippingAPI.dll unless you have a reason to change it.'),
     '#required' => TRUE,
   );
-  $production_access = l(t('production access'), 'https://www.usps.com/business/web-tools-apis/developers-center.htm');
+  $production_access = l(t('production access'), 'https://www.usps.com/business/web-tools-apis/welcome.htm');
   $form['api']['commerce_usps_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
