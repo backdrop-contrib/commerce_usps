@@ -58,3 +58,29 @@ function commerce_usps_update_7000() {
 
   return t('Existing USPS shipping rules have been updated to the latest version. Be sure to clear your cache if you have issues.');
 }
+
+/**
+ * Replaces First Class and Retail Ground services with Ground Advantage.
+ */
+function commerce_usps_update_7001() {
+
+  $services = variable_get('commerce_usps_services', array());
+  $services_new = array(
+    'usps_ground_advantage' => $services['usps_first_class'] || $services['usps_standard_post'] ? 'usps_ground_advantage' : 0,
+  );
+  // Loop through other services to keep current settings.
+  foreach ($services as $name => $value) {
+    if (!in_array($name, ['usps_first_class', 'usps_standard_post'])) {
+      $services_new[$name] = $value;
+    }
+  }
+
+  // Override the services variable with the new values.
+  variable_set('commerce_usps_services', $services_new);
+  commerce_shipping_services_reset();
+  entity_defaults_rebuild();
+  rules_clear_cache(TRUE);
+  menu_rebuild();
+
+  return t('USPS First Class and Retail Ground shipping rules have been replaced by Ground Advantage. Be sure to clear your cache if you have issues.');
+}

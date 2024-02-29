@@ -144,10 +144,10 @@ function commerce_usps_validate_order($order) {
 function commerce_usps_service_list($type = '') {
   $usps_services = array(
     'domestic' => array(
-      'usps_first_class' => array(
-        'request_name' => 'FIRST CLASS',
-        'title' => t('USPS First Class'),
-        'id' => 0,
+      'usps_ground_advantage' => array(
+        'request_name' => 'GROUND ADVANTAGE',
+        'title' => t('USPS Ground Advantage'),
+        'id' => 1058,
       ),
       'usps_priority_mail' => array(
         'request_name' => 'PRIORITY',
@@ -158,11 +158,6 @@ function commerce_usps_service_list($type = '') {
         'request_name' => 'EXPRESS',
         'title' => t('USPS Express Mail'),
         'id' => 3,
-      ),
-      'usps_standard_post' => array(
-        'request_name' => 'Retail Ground',
-        'title' => t('USPS Retail Ground'),
-        'id' => 4,
       ),
       'usps_media_mail' => array(
         'request_name' => 'MEDIA',
