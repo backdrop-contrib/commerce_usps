@@ -1,0 +1,11 @@
+{
+    "_config_name": "commerce_usps.settings",
+    "commerce_usps_services": [],
+    "commerce_usps_services_int": [],
+    "commerce_usps_rates_timeout": "0",
+    "commerce_usps_log": "0",
+    "commerce_usps_show_logo": false,
+    "commerce_usps_postal_code": "",
+    "commerce_usps_user": "",
+    "commerce_usps_connection_address": "http://Production.ShippingAPIs.com/ShippingAPI.dll"
+}

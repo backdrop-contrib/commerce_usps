@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Defines the USPS shipping method and services for Drupal Commerce.
+ * Defines the USPS shipping method and services for Backdrop Commerce.
  */
 
 /**
@@ -13,7 +13,7 @@ function commerce_usps_menu() {
   $items['admin/commerce/config/shipping/methods/usps/edit'] = array(
     'title' => 'Edit',
     'description' => 'Adjust USPS shipping settings.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('commerce_usps_settings_form'),
     'access arguments' => array('administer shipping'),
     'file' => 'includes/commerce_usps.admin.inc',
@@ -38,12 +38,24 @@ function commerce_usps_commerce_shipping_method_info() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function commerce_usps_config_info() {
+  $prefixes['commerce_usps.settings'] = array(
+    'label' => t('USPS settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
  * Implements hook_commerce_shipping_service_info().
  */
 function commerce_usps_commerce_shipping_service_info() {
+  $config = config('commerce_usps.settings');
   $registered_services = array();
   $available = array_merge(commerce_usps_service_list('domestic'), commerce_usps_service_list('international'));
-  $enabled = array_merge(variable_get('commerce_usps_services', array()), variable_get('commerce_usps_services_int', array()));
+  $enabled = array_merge($config->get('commerce_usps_services'), $config->get('commerce_usps_services_int'));
 
   // Add enabled USPS services to the commerce_shipping service info.
   foreach ($enabled as $machine_name => $service) {
@@ -77,7 +89,7 @@ function commerce_usps_commerce_shipping_service_info() {
  */
 function commerce_usps_rate($service, $order) {
   // Attempt to recover cached shipping rates.
-  $rates = commerce_shipping_rates_cache_get('usps', $order, variable_get('commerce_usps_rates_timeout', 0));
+  $rates = commerce_shipping_rates_cache_get('usps', $order, config_get('commerce_usps.settings', 'commerce_usps_rates_timeout'));
 
   // If no cached rates were found or they have expired.
   if (!is_array($rates) && commerce_usps_validate_order($order)) {
@@ -207,7 +219,7 @@ function commerce_usps_service_list($type = '') {
   );
 
   // Allow other modules to add or alter services.
-  drupal_alter('commerce_usps_services_list', $usps_services);
+  backdrop_alter('commerce_usps_services_list', $usps_services);
 
   // If the service destination is defined, return only those services.
   if (!empty($usps_services[$type])) {
@@ -221,7 +233,7 @@ function commerce_usps_service_list($type = '') {
  * Helper function to log USPS messages.
  */
 function commerce_usps_log($message, $variables = array(), $severity = WATCHDOG_NOTICE) {
-  if (variable_get('commerce_usps_log')) {
+  if (config_get('commerce_usps.settings', 'commerce_usps_log')) {
     watchdog('commerce_usps', $message, $variables, $severity);
   }
 }
@@ -300,12 +312,12 @@ function commerce_usps_get_shipment_value($order) {
 function commerce_usps_commerce_shipping_service_rate_options_alter(&$options, $order) {
   // If the display USPS logo next to USPS services is enabled in settings,
   // loop through the shipping options and add the USPS logo to USPS services.
-  if (variable_get('commerce_usps_show_logo', FALSE)) {
-    $image = drupal_get_path('module', 'commerce_usps') . '/images/usps-logo.png';
+  if (config_get('commerce_usps.settings', 'commerce_usps_show_logo')) {
+    $image = backdrop_get_path('module', 'commerce_usps') . '/images/usps-logo.png';
     if (file_exists($image)) {
       $services = commerce_usps_service_list();
       foreach ($options as $key => &$option) {
-        if (in_array(drupal_strtolower($key), array_keys($services['domestic'])) || in_array(drupal_strtolower($key), array_keys($services['international']))) {
+        if (in_array(backdrop_strtolower($key), array_keys($services['domestic'])) || in_array(backdrop_strtolower($key), array_keys($services['international']))) {
           $option = theme('image', array('path' => $image)) . ' ' . $option;
         }
       }

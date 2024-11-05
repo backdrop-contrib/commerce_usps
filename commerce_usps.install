@@ -6,81 +6,33 @@
  */
 
 /**
- * Implements hook_uninstall().
+ * Implements hook_update_last_removed().
  */
-function commerce_usps_uninstall() {
-  $fields = array(
-    'commerce_usps_postal_code',
-    'commerce_usps_services',
-    'commerce_usps_services_int',
-    'commerce_usps_connection_address',
-    'commerce_usps_user',
-    'commerce_usps_show_logo',
-    'commerce_usps_log',
-  );
-
-  foreach ($fields as $data) {
-    variable_del($data);
-  }
+function commerce_usps_update_last_removed() {
+  return 7001;
 }
 
 /**
- * Updates existing usps shipping services to their new keys.
+ * Migrate commerce_usps variables to config.
  */
-function commerce_usps_update_7000() {
-  // We've removed the markup features since this can be done with Rules.
-  variable_del('commerce_usps_markup');
-  variable_del('commerce_usps_markup_type');
+function commerce_usps_update_1000() {
+  $config = config('commerce_usps.settings');
+  $config->set('commerce_usps_services', update_variable_get('commerce_usps_services', array()));
+  $config->set('commerce_usps_services_int', update_variable_get('commerce_usps_services_int', array()));
+  $config->set('commerce_usps_rates_timeout', update_variable_get('commerce_usps_rates_timeout', '0'));
+  $config->set('commerce_usps_log', update_variable_get('commerce_usps_log', '0'));
+  $config->set('commerce_usps_show_logo', update_variable_get('commerce_usps_show_logo', array()));
+  $config->set('commerce_usps_postal_code', update_variable_get('commerce_usps_postal_code', ''));
+  $config->set('commerce_usps_user', update_variable_get('commerce_usps_user', ''));
+  $config->set('commerce_usps_connection_address', update_variable_get('commerce_usps_connection_address', 'http://Production.ShippingAPIs.com/ShippingAPI.dll'));
+  $config->save();
 
-  // The previous service names.
-  $service_names = array(
-    'FIRST CLASS' => 'usps_first_class',
-    'PRIORITY' => 'usps_priority_mail',
-    'EXPRESS' => 'usps_express_mail',
-    'PARCEL' => 'usps_standard_post',
-    'MEDIA' => 'usps_media_mail',
-    'LIBRARY' => 'usps_library_mail',
-  );
-
-  $services = variable_get('commerce_usps_services', array());
-  $services_new = array();
-  // Loop through the selected services and update their new service names.
-  foreach ($services as $service) {
-    $services_new[$service_names[$service]] = $service_names[$service];
-  }
-
-  // Override the services variable with the new values.
-  variable_set('commerce_usps_services', $services_new);
-  commerce_shipping_services_reset();
-  entity_defaults_rebuild();
-  rules_clear_cache(TRUE);
-  menu_rebuild();
-
-  return t('Existing USPS shipping rules have been updated to the latest version. Be sure to clear your cache if you have issues.');
-}
-
-/**
- * Replaces First Class and Retail Ground services with Ground Advantage.
- */
-function commerce_usps_update_7001() {
-
-  $services = variable_get('commerce_usps_services', array());
-  $services_new = array(
-    'usps_ground_advantage' => $services['usps_first_class'] || $services['usps_standard_post'] ? 'usps_ground_advantage' : 0,
-  );
-  // Loop through other services to keep current settings.
-  foreach ($services as $name => $value) {
-    if (!in_array($name, ['usps_first_class', 'usps_standard_post'])) {
-      $services_new[$name] = $value;
-    }
-  }
-
-  // Override the services variable with the new values.
-  variable_set('commerce_usps_services', $services_new);
-  commerce_shipping_services_reset();
-  entity_defaults_rebuild();
-  rules_clear_cache(TRUE);
-  menu_rebuild();
-
-  return t('USPS First Class and Retail Ground shipping rules have been replaced by Ground Advantage. Be sure to clear your cache if you have issues.');
+  update_variable_del('commerce_usps_services');
+  update_variable_del('commerce_usps_services_int');
+  update_variable_del('commerce_usps_rates_timeout');
+  update_variable_del('commerce_usps_log');
+  update_variable_del('commerce_usps_show_logo');
+  update_variable_del('commerce_usps_postal_code');
+  update_variable_del('commerce_usps_user');
+  update_variable_del('commerce_usps_connection_address');
 }

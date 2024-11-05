@@ -17,26 +17,27 @@
  *   An array of shipping rates.
  */
 function commerce_usps_rate_v4_request($order, $shipping_address) {
+  $config = config('commerce_usps.settings');
   $rates = array();
   $usps_services = commerce_usps_service_list('domestic');
 
   $weight = commerce_usps_get_order_weight($order);
 
   $request = new SimpleXMLElement('<RateV4Request/>');
-  $request->addAttribute('USERID', variable_get('commerce_usps_user', ''));
+  $request->addAttribute('USERID', $config->get('commerce_usps_user'));
   $request->addChild('Revision', 2);
 
   // @TODO: Support multiple packages based on physical attributes.
   // Add a package to the request for each enabled service.
   $i = 1;
 
-  foreach (variable_get('commerce_usps_services', array()) as $machine_name => $service) {
+  foreach ($config->get('commerce_usps_services') as $machine_name => $service) {
     if (!empty($service)) {
       $package = $request->addChild('Package');
       $package->addAttribute('ID', $i);
       $package->addChild('Service', $usps_services[$machine_name]['request_name']);
       $package->addChild('FirstClassMailType', 'PARCEL');
-      $package->addChild('ZipOrigination', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
+      $package->addChild('ZipOrigination', substr($config->get('commerce_usps_postal_code'), 0, 5));
       $package->addChild('ZipDestination', substr($shipping_address['postal_code'], 0, 5));
       $package->addChild('Pounds', $weight['pounds']);
       $package->addChild('Ounces', $weight['ounces']);
@@ -47,7 +48,7 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
     }
   }
 
-  drupal_alter('commerce_usps_rate_v4_request', $request);
+  backdrop_alter('commerce_usps_rate_v4_request', $request);
 
   // Submit the rate request to USPS.
   $response = commerce_usps_api_request('API=RateV4&XML=' . $request->asXML());
@@ -88,12 +89,13 @@ function commerce_usps_rate_v4_request($order, $shipping_address) {
  *   An array of shipping rates.
  */
 function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
+  $config = config('commerce_usps.settings');
   $rates = array();
 
   $weight = commerce_usps_get_order_weight($order);
 
   $request = new SimpleXMLElement('<IntlRateV2Request/>');
-  $request->addAttribute('USERID', variable_get('commerce_usps_user', ''));
+  $request->addAttribute('USERID', $config->get('commerce_usps_user'));
   $request->addChild('Revision', 2);
   $shipment_value = commerce_usps_get_shipment_value($order);
 
@@ -112,10 +114,10 @@ function commerce_usps_intl_rate_v2_request($order, $shipping_address) {
   $package->addChild('Length', '');
   $package->addChild('Height', '');
   $package->addChild('Girth', '');
-  $package->addChild('OriginZip', substr(variable_get('commerce_usps_postal_code', ''), 0, 5));
+  $package->addChild('OriginZip', substr($config->get('commerce_usps_postal_code'), 0, 5));
   $package->addChild('CommercialFlag', 'N');
 
-  drupal_alter('commerce_usps_intl_rate_v2_request', $request);
+  backdrop_alter('commerce_usps_intl_rate_v2_request', $request);
 
   // Submit the rate request to USPS.
   $response = commerce_usps_api_request('API=IntlRateV2&XML=' . $request->asXML());
@@ -156,10 +158,10 @@ function commerce_usps_api_request($request, $message = '') {
 
   commerce_usps_log('Submitting API request to USPS. @message:<pre>@request</pre>', array('@message' => $message, '@request' => $request));
 
-  $request_url = variable_get('commerce_usps_connection_address', 'http://Production.ShippingAPIs.com/ShippingAPI.dll');
+  $request_url = config_get('commerce_usps.settings', 'commerce_usps_connection_address');
 
   // Send the request.
-  $response = drupal_http_request($request_url, array('method' => 'POST', 'data' => $request));
+  $response = backdrop_http_request($request_url, array('method' => 'POST', 'data' => $request));
 
   // If we received a response.
   if (!empty($response->data)) {

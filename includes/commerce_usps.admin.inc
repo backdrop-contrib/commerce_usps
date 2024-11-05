@@ -9,9 +9,10 @@
  * Form builder function for module settings.
  *
  * @return string
- *   Drupal form for USPS settings
+ *   Backdrop form for USPS settings
  */
 function commerce_usps_settings_form() {
+  $config = config('commerce_usps.settings');
   $form['origin'] = array(
     '#title' => t('Ship from location'),
     '#type' => 'fieldset',
@@ -20,7 +21,7 @@ function commerce_usps_settings_form() {
   $form['origin']['commerce_usps_postal_code'] = array(
     '#type' => 'textfield',
     '#title' => t('Postal Code'),
-    '#default_value' => variable_get('commerce_usps_postal_code', ''),
+    '#default_value' => $config->get('commerce_usps_postal_code'),
   );
   $form['settings'] = array(
     '#type' => 'fieldset',
@@ -35,7 +36,7 @@ function commerce_usps_settings_form() {
     '#type' => 'checkboxes',
     '#title' => t('USPS Services'),
     '#description' => t('Select the USPS services that are available to customers.'),
-    '#default_value' => variable_get('commerce_usps_services', array()),
+    '#default_value' => $config->get('commerce_usps_services'),
     '#options' => $usps_services,
   );
   $usps_services_int = array();
@@ -46,19 +47,19 @@ function commerce_usps_settings_form() {
     '#type' => 'checkboxes',
     '#title' => t('USPS International Services'),
     '#description' => t('Select the USPS International services that are available to customers.'),
-    '#default_value' => variable_get('commerce_usps_services_int', array()),
+    '#default_value' => $config->get('commerce_usps_services_int'),
     '#options' => $usps_services_int,
   );
   $form['api'] = array(
     '#type' => 'fieldset',
     '#title' => t('USPS Connection Settings'),
-    '#collapsed' => variable_get('commerce_usps_user', FALSE),
+    '#collapsed' => $config->get('commerce_usps_user'),
     '#collapsible' => TRUE,
   );
   $form['api']['commerce_usps_connection_address'] = array(
     '#type' => 'textfield',
     '#title' => t('Connection Address'),
-    '#default_value' => variable_get('commerce_usps_connection_address', 'http://production.shippingapis.com/ShippingAPI.dll'),
+    '#default_value' => $config->get('commerce_usps_connection_address'),
     '#description' => t('Leave this set to http://production.shippingapis.com/ShippingAPI.dll unless you have a reason to change it.'),
     '#required' => TRUE,
   );
@@ -66,7 +67,7 @@ function commerce_usps_settings_form() {
   $form['api']['commerce_usps_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
-    '#default_value' => variable_get('commerce_usps_user', ''),
+    '#default_value' => $config->get('commerce_usps_user'),
     '#description' => t('The username for your USPS account.') . ' <strong>' . t('You must have been granted !production_access for this module to work.', array('!production_access' => $production_access)) . '</strong>',
     '#required' => TRUE,
   );
@@ -79,7 +80,7 @@ function commerce_usps_settings_form() {
   $form['advanced']['commerce_usps_show_logo'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show USPS logo next to service'),
-    '#default_value' => variable_get('commerce_usps_show_logo', FALSE),
+    '#default_value' => $config->get('commerce_usps_show_logo'),
   );
   $form['advanced']['commerce_usps_log'] = array(
     '#type' => 'radios',
@@ -88,7 +89,7 @@ function commerce_usps_settings_form() {
       0 => t('Do not log messages'),
       1 => t('Log messages'),
     ),
-    '#default_value' => variable_get('commerce_usps_log', 0),
+    '#default_value' => $config->get('commerce_usps_log'),
   );
   $form['actions'] = array(
     '#type' => 'container',
@@ -113,7 +114,7 @@ function commerce_usps_settings_form_validate($form, $form_state) {
   }
   // Disallow USPS testing urls.
   $connection_address = $form_state['values']['commerce_usps_connection_address'];
-  if (preg_match('/testing/', drupal_strtolower($connection_address))) {
+  if (preg_match('/testing/', backdrop_strtolower($connection_address))) {
     form_set_error('commerce_usps_connection_address', t('Only production urls will work with this module. Please have USPS exdend production access to your Webtools account by calling or emailing them.'));
   }
 }
@@ -122,6 +123,7 @@ function commerce_usps_settings_form_validate($form, $form_state) {
  * Submit handler: saves the usps settings.
  */
 function commerce_usps_settings_form_submit($form, &$form_state) {
+  $config = config('commerce_usps.settings');
   $fields = array(
     'commerce_usps_postal_code',
     'commerce_usps_services',
@@ -131,19 +133,20 @@ function commerce_usps_settings_form_submit($form, &$form_state) {
     'commerce_usps_show_logo',
     'commerce_usps_log',
   );
-  $services = variable_get('commerce_usps_services', NULL);
+  $services = config_get('commerce_usps.settings', 'commerce_usps_services');
   foreach ($fields as $key) {
     if (array_key_exists($key, $form_state['values'])) {
       $value = $form_state['values'][$key];
-      variable_set($key, $value);
+      $config->set($key, $value);
     }
   }
+  $config->save();
   // If the selected services have changed then rebuild caches.
   if ($services !== $form_state['values']['commerce_usps_services']) {
     commerce_shipping_services_reset();
-    entity_defaults_rebuild();
+    entity_plus_defaults_rebuild();
     rules_clear_cache(TRUE);
     menu_rebuild();
   }
-  drupal_set_message(t('The USPS configuration options have been saved.'));
+  backdrop_set_message(t('The USPS configuration options have been saved.'));
 }
